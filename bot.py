@@ -5,7 +5,7 @@ import logging
 import json
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Optional, Callable, Dict, List
+from typing import Optional, Callable, Dict, List, Tuple
 from functools import lru_cache
 from decimal import Decimal, ROUND_HALF_UP
 import time
@@ -53,16 +53,16 @@ class PositionManager:
         min_trade_interval: Минимальный интервал между сделками для одного символа
     """
     
-    def __init__(self, max_positions: int = 3, max_risk_per_trade: float = 2.0, min_trade_interval_minutes: int = 5):
+    def __init__(self, max_positions_per_symbol: int = 3, max_risk_per_trade: float = 2.0, min_trade_interval_minutes: int = 5):
         """Инициализация менеджера позиций
         
         Args:
-            max_positions: Максимальное количество одновременных позиций
+            max_positions_per_symbol: Максимальное количество одновременных позиций на символ
             max_risk_per_trade: Максимальный риск на одну сделку в процентах
             min_trade_interval_minutes: Минимальный интервал между сделками в минутах
         """
-        self.positions: Dict[str, Dict] = {}
-        self.max_positions = max_positions
+        self.positions: Dict[str, List[Dict]] = {}  # Теперь список позиций для каждого символа
+        self.max_positions_per_symbol = max_positions_per_symbol
         self.max_risk_per_trade = max_risk_per_trade
         self.last_trade_time: Dict[str, datetime] = {}
         self.min_trade_interval = timedelta(minutes=min_trade_interval_minutes)
@@ -76,12 +76,10 @@ class PositionManager:
         Returns:
             bool: True если можно открыть позицию, False если нельзя
         """
-        if len(self.positions) >= self.max_positions:
-            logger.info(f"Cannot open {symbol}: max positions reached ({self.max_positions})")
-            return False
-            
-        if symbol in self.positions:
-            logger.info(f"Cannot open {symbol}: position already exists")
+        # Проверяем количество позиций для конкретного символа
+        symbol_positions = self.positions.get(symbol, [])
+        if len(symbol_positions) >= self.max_positions_per_symbol:
+            logger.info(f"Cannot open {symbol}: max positions for symbol reached ({len(symbol_positions)}/{self.max_positions_per_symbol})")
             return False
             
         if symbol in self.last_trade_time:
@@ -92,7 +90,7 @@ class PositionManager:
                 
         return True
     
-    def add_position(self, symbol: str, side: str, amount: float, price: float, stop_loss: float, take_profit: float, strategy_used: str = None):
+    def add_position(self, symbol: str, side: str, amount: float, price: float, stop_loss: float, take_profit: float, strategy_used: str = None, position_id: str = None):
         """Добавление новой позиции с информацией о стратегии
         
         Args:
@@ -103,8 +101,17 @@ class PositionManager:
             stop_loss: Уровень стоп-лосс
             take_profit: Уровень тейк-профит
             strategy_used: Название использованной стратегии
+            position_id: Уникальный ID позиции
         """
-        self.positions[symbol] = {
+        if symbol not in self.positions:
+            self.positions[symbol] = []
+            
+        # Генерируем ID позиции если не предоставлен
+        if position_id is None:
+            position_id = f"{symbol}_{len(self.positions[symbol])}_{int(datetime.now().timestamp())}"
+            
+        position = {
+            'id': position_id,
             'side': side,
             'amount': amount,
             'entry_price': price,
@@ -114,72 +121,122 @@ class PositionManager:
             'strategy_used': strategy_used,
             'trade_start_time': datetime.now()
         }
+        
+        self.positions[symbol].append(position)
         self.last_trade_time[symbol] = datetime.now()
-        logger.info(f"Position added: {symbol} {side} amount={amount} price={price} SL={stop_loss} TP={take_profit} strategy={strategy_used}")
+        logger.info(f"Position added: {symbol} {side} amount={amount} price={price} SL={stop_loss} TP={take_profit} strategy={strategy_used} (total: {len(self.positions[symbol])}/{self.max_positions_per_symbol})")
     
-    def remove_position(self, symbol: str):
+    def remove_position(self, symbol: str, position_id: str = None):
         """Удаление закрытой позиции
         
         Args:
             symbol: Торговая пара
+            position_id: ID конкретной позиции (если None, удаляется первая)
         """
-        if symbol in self.positions:
+        if symbol not in self.positions or not self.positions[symbol]:
+            logger.warning(f"No positions found for {symbol}")
+            return
+            
+        if position_id is None:
+            # Удаляем первую позицию если ID не указан
+            removed_position = self.positions[symbol].pop(0)
+            logger.info(f"Position removed: {symbol} (ID: {removed_position['id']})")
+        else:
+            # Удаляем конкретную позицию по ID
+            for i, position in enumerate(self.positions[symbol]):
+                if position['id'] == position_id:
+                    removed_position = self.positions[symbol].pop(i)
+                    logger.info(f"Position removed: {symbol} (ID: {position_id})")
+                    break
+            else:
+                logger.warning(f"Position ID {position_id} not found for {symbol}")
+                
+        # Удаляем символ из словаря если позиций больше нет
+        if not self.positions[symbol]:
             del self.positions[symbol]
-            logger.info(f"Position removed: {symbol}")
     
-    def get_position(self, symbol: str) -> Optional[Dict]:
+    def get_position(self, symbol: str, position_id: str = None) -> Optional[Dict]:
         """Получение информации о позиции
+        
+        Args:
+            symbol: Торговая пара
+            position_id: ID конкретной позиции (если None, возвращается первая)
+            
+        Returns:
+            Optional[Dict]: Информация о позиции или None если позиция не найдена
+        """
+        if symbol not in self.positions or not self.positions[symbol]:
+            return None
+            
+        if position_id is None:
+            return self.positions[symbol][0] if self.positions[symbol] else None
+        else:
+            for position in self.positions[symbol]:
+                if position['id'] == position_id:
+                    return position
+            return None
+    
+    def get_all_positions(self) -> Dict[str, List[Dict]]:
+        """Получение всех открытых позиций
+        
+        Returns:
+            Dict[str, List[Dict]]: Словарь всех открытых позиций
+        """
+        return self.positions.copy()
+        
+    def get_total_positions_count(self) -> int:
+        """Получение общего количества открытых позиций
+        
+        Returns:
+            int: Общее количество открытых позиций
+        """
+        return sum(len(positions) for positions in self.positions.values())
+        
+    def get_positions_for_symbol(self, symbol: str) -> List[Dict]:
+        """Получение всех позиций для конкретной торговой пары
         
         Args:
             symbol: Торговая пара
             
         Returns:
-            Optional[Dict]: Информация о позиции или None если позиция не найдена
+            List[Dict]: Список позиций для символа
         """
-        return self.positions.get(symbol)
+        return self.positions.get(symbol, [])
     
-    def get_all_positions(self) -> Dict[str, Dict]:
-        """Получение всех открытых позиций
-        
-        Returns:
-            Dict[str, Dict]: Словарь всех открытых позиций
-        """
-        return self.positions.copy()
-    
-    def update_position(self, symbol: str, current_price: float) -> Optional[str]:
-        """Обновление позиции и проверка достижения SL/TP
+    def update_position(self, symbol: str, current_price: float) -> List[tuple]:
+        """Обновление позиций и проверка достижения SL/TP
         
         Args:
             symbol: Торговая пара
             current_price: Текущая цена
             
         Returns:
-            Optional[str]: "stop_loss" если достигнут стоп-лосс, 
-                          "take_profit" если достигнут тейк-профит,
-                          None если уровни не достигнуты
+            List[tuple]: Список кортежей (position_id, trigger_type) для позиций, достигших SL/TP
         """
-        if symbol not in self.positions:
-            return None
+        if symbol not in self.positions or not self.positions[symbol]:
+            return []
             
-        position = self.positions[symbol]
-        side = position['side']
-        entry_price = position['entry_price']
-        stop_loss = position['stop_loss']
-        take_profit = position['take_profit']
+        triggered_positions = []
         
-        # Проверяем достижение уровней SL/TP
-        if side == "Buy":
-            if current_price <= stop_loss:
-                return "stop_loss"
-            elif current_price >= take_profit:
-                return "take_profit"
-        else:  # Sell
-            if current_price >= stop_loss:
-                return "stop_loss"
-            elif current_price <= take_profit:
-                return "take_profit"
+        for position in self.positions[symbol]:
+            side = position['side']
+            stop_loss = position['stop_loss']
+            take_profit = position['take_profit']
+            position_id = position['id']
+            
+            # Проверяем достижение уровней SL/TP
+            if side == "Buy":
+                if current_price <= stop_loss:
+                    triggered_positions.append((position_id, "stop_loss"))
+                elif current_price >= take_profit:
+                    triggered_positions.append((position_id, "take_profit"))
+            else:  # Sell
+                if current_price >= stop_loss:
+                    triggered_positions.append((position_id, "stop_loss"))
+                elif current_price <= take_profit:
+                    triggered_positions.append((position_id, "take_profit"))
         
-        return None
+        return triggered_positions
 
 
 class StrategySelector:
@@ -667,10 +724,11 @@ class BybitTradingBot:
         self.session = session
         self.config = config
         self.position_manager = PositionManager(
-            max_positions=config.max_positions,
+            max_positions_per_symbol=config.max_positions_per_symbol,
             max_risk_per_trade=config.max_risk_per_trade,
             min_trade_interval_minutes=config.min_trade_interval_minutes
         )
+        self.max_total_positions = config.max_total_positions
         self.strategy_selector = StrategySelector(
             strategy_cooldown_minutes=self.config.strategy_cooldown_minutes
         )
@@ -1008,6 +1066,12 @@ class BybitTradingBot:
         # Проверяем, можем ли открыть позицию
         if not self.position_manager.can_open_position(symbol):
             return None
+            
+        # Проверяем общее количество позиций
+        total_positions = self.position_manager.get_total_positions_count()
+        if total_positions >= self.max_total_positions:
+            logger.info(f"Cannot open {symbol}: max total positions reached ({total_positions}/{self.max_total_positions})")
+            return None
         
         # Обновляем баланс
         balance = self.update_balance()
@@ -1183,19 +1247,20 @@ class BybitTradingBot:
         """Получение подробной статистики по всем стратегиям"""
         return self.strategy_selector.get_performance_summary()
     
-    def close_position(self, symbol: str, side: str, amount: float) -> dict:
+    def close_position(self, symbol: str, side: str, amount: float, position_id: str = None) -> dict:
         """Закрытие позиции с отслеживанием результатов стратегии
         
         Args:
             symbol: Торговая пара
             side: Сторона позиции (Buy/Sell)
             amount: Размер позиции
+            position_id: ID конкретной позиции
             
         Returns:
             dict: Результат закрытия позиции
         """
         # Получаем информацию о позиции до закрытия
-        position_info = self.position_manager.get_position(symbol)
+        position_info = self.position_manager.get_position(symbol, position_id)
         strategy_used = None
         trade_start_time = None
         entry_price = None
@@ -1260,14 +1325,14 @@ class BybitTradingBot:
                                f"PnL: ${actual_pnl_usd:.2f} ({pnl_pct:+.2f}%) Duration: {trade_duration}min")
                 
                 # Удаляем позицию из менеджера
-                self.position_manager.remove_position(symbol)
+                self.position_manager.remove_position(symbol, position_id)
             else:
                 logger.error(f"Failed to close position {symbol} - code: {ret_code}, message: {ret_msg}")
                 # Логируем дополнительную информацию об ошибке
                 if "error" in result:
                     logger.error(f"{symbol}: Error details: {result['error']}")
                 # Удаляем позицию из менеджера даже при ошибке API
-                self.position_manager.remove_position(symbol)
+                self.position_manager.remove_position(symbol, position_id)
             
             return result
         except Exception as e:
@@ -1281,24 +1346,23 @@ class BybitTradingBot:
         
         Проверяет все открытые позиции и закрывает те, где достигнуты уровни SL/TP
         """
-        positions = self.position_manager.get_all_positions()
-        for symbol in list(positions.keys()):  # Используем list() для избежания изменения словаря во время итерации
+        all_positions = self.position_manager.get_all_positions()
+        for symbol in list(all_positions.keys()):
             try:
                 current_price = self._last_price(symbol)
-                result = self.position_manager.update_position(symbol, current_price)
+                triggered_positions = self.position_manager.update_position(symbol, current_price)
                 
-                if result == "stop_loss":
-                    position = self.position_manager.get_position(symbol)
+                for position_id, trigger_type in triggered_positions:
+                    position = self.position_manager.get_position(symbol, position_id)
                     if position:
-                        logger.info(f"Stop-loss reached for {symbol} at price {current_price}")
-                        self.close_position(symbol, position['side'], position['amount'])
-                elif result == "take_profit":
-                    position = self.position_manager.get_position(symbol)
-                    if position:
-                        logger.info(f"Take-profit reached for {symbol} at price {current_price}")
-                        self.close_position(symbol, position['side'], position['amount'])
+                        if trigger_type == "stop_loss":
+                            logger.info(f"Stop-loss reached for {symbol} (ID: {position_id}) at price {current_price}")
+                            self.close_position(symbol, position['side'], position['amount'], position_id)
+                        elif trigger_type == "take_profit":
+                            logger.info(f"Take-profit reached for {symbol} (ID: {position_id}) at price {current_price}")
+                            self.close_position(symbol, position['side'], position['amount'], position_id)
             except Exception as e:
-                logger.error(f"Error checking position {symbol}: {e}")
+                logger.error(f"Error checking positions for {symbol}: {e}")
 
 
 def main() -> None:
@@ -1318,7 +1382,9 @@ def main() -> None:
     bot = BybitTradingBot(session, cfg)
     
     logger.info("=" * 60)
-    logger.info("Starting Enhanced Bybit Trading Bot")
+    logger.info(f"Max positions per symbol: {cfg.max_positions_per_symbol}")
+    logger.info(f"Max total positions: {cfg.max_total_positions}")
+    logger.info(f"Allowed symbols: {', '.join(bot.ALLOWED_SYMBOLS)}")
     logger.info("=" * 60)
     
     # Начальная проверка баланса
@@ -1343,8 +1409,12 @@ def main() -> None:
             logger.info(f"Strategy performance: {stats}")
         
         # Логируем открытые позиции
-        if bot.position_manager.positions:
-            logger.info(f"Open positions: {list(bot.position_manager.positions.keys())}")
+        total_positions = bot.position_manager.get_total_positions_count()
+        if total_positions > 0:
+            position_summary = []
+            for symbol, positions in bot.position_manager.get_all_positions().items():
+                position_summary.append(f"{symbol}:{len(positions)}")
+            logger.info(f"Open positions ({total_positions}/{bot.max_total_positions}): {', '.join(position_summary)}")
         
         # Проверяем и закрываем позиции при достижении SL/TP
         bot.check_and_close_positions()

@@ -11,7 +11,8 @@ class BybitConfig:
     testnet: bool = False
     demo: bool = True
     ignore_ssl: bool = True
-    max_positions: int = 3
+    max_positions_per_symbol: int = 3
+    max_total_positions: int = 18
     max_risk_per_trade: float = 2.0
     min_trade_interval_minutes: int = 5
     strategy_cooldown_minutes: int = 30
@@ -29,7 +30,8 @@ class BybitConfig:
             testnet=os.getenv("BYBIT_TESTNET", "False").lower() == "true",
             demo=os.getenv("BYBIT_DEMO", "True").lower() == "true",
             ignore_ssl=os.getenv("BYBIT_IGNORE_SSL", "True").lower() == "true",
-            max_positions=int(os.getenv("BYBIT_MAX_POSITIONS", "3")),
+            max_positions_per_symbol=int(os.getenv("BYBIT_MAX_POSITIONS_PER_SYMBOL", "3")),
+            max_total_positions=int(os.getenv("BYBIT_MAX_TOTAL_POSITIONS", "18")),
             max_risk_per_trade=float(os.getenv("BYBIT_MAX_RISK_PER_TRADE", "2.0")),
             min_trade_interval_minutes=int(os.getenv("BYBIT_MIN_TRADE_INTERVAL_MINUTES", "5")),
             strategy_cooldown_minutes=int(os.getenv("BYBIT_STRATEGY_COOLDOWN_MINUTES", "30")),

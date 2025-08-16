@@ -161,6 +161,61 @@ def sma_crossover(
     return signal, stop, take
 
 
+def limit_open_positions(positions: dict, max_positions: int) -> bool:
+    """Check if opening a new position would exceed maximum allowed positions.
+    
+    Args:
+        positions: Dictionary of open positions
+        max_positions: Maximum allowed positions
+        
+    Returns:
+        bool: True if a new position can be opened, False otherwise
+    """
+    current_count = len(positions)
+    return current_count < max_positions
+
+
+def apply_sl_tp_bounds(price: float, signal: str, stop: float, take: float, 
+                      min_distance_pct: float = 0.5, max_distance_pct: float = 10.0) -> tuple[float, float]:
+    """Apply bounds to stop-loss and take-profit levels.
+    
+    Args:
+        price: Current market price
+        signal: Trade signal ("Buy" or "Sell")
+        stop: Stop-loss level
+        take: Take-profit level
+        min_distance_pct: Minimum distance from price as percentage
+        max_distance_pct: Maximum distance from price as percentage
+        
+    Returns:
+        tuple: Adjusted (stop_loss, take_profit) levels
+    """
+    min_distance = price * min_distance_pct / 100
+    max_distance = price * max_distance_pct / 100
+    
+    if signal == "Buy":
+        # For Buy orders: SL should be below price, TP should be above price
+        stop_min = price - max_distance
+        stop_max = price - min_distance
+        take_min = price + min_distance
+        take_max = price + max_distance
+        
+        stop = max(stop_min, min(stop, stop_max))
+        take = max(take_min, min(take, take_max))
+        
+    else:  # Sell
+        # For Sell orders: SL should be above price, TP should be below price
+        stop_min = price + min_distance
+        stop_max = price + max_distance
+        take_min = price - max_distance
+        take_max = price - min_distance
+        
+        stop = max(stop_min, min(stop, stop_max))
+        take = max(take_min, min(take, take_max))
+    
+    return stop, take
+
+
 def breakout(
     candles: Sequence[Sequence[float]], lookback: int = 20, k: float = 2.0
 ) -> Tuple[str, float, float]:

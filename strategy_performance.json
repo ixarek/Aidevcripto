@@ -1,0 +1,84 @@
+{
+  "strategy_performance": {
+    "sma_crossover": {
+      "total_trades": 2,
+      "winning_trades": 0,
+      "losing_trades": 2,
+      "total_pnl": -1.006086133665161,
+      "avg_trade_duration": 2.5,
+      "max_drawdown": 0.5356416499548492,
+      "sharpe_ratio": 0.0,
+      "last_10_trades": [
+        {
+          "success": false,
+          "pnl": -0.4704444837103117,
+          "duration": 2,
+          "timestamp": "2025-08-16T17:30:06.614951"
+        },
+        {
+          "success": false,
+          "pnl": -0.5356416499548492,
+          "duration": 3,
+          "timestamp": "2025-08-16T17:31:13.328515"
+        }
+      ],
+      "base_weight": 1.0,
+      "volatility_preference": 0.7,
+      "trend_preference": 1.8
+    },
+    "breakout": {
+      "total_trades": 0,
+      "winning_trades": 0,
+      "losing_trades": 0,
+      "total_pnl": 0.0,
+      "avg_trade_duration": 0.0,
+      "max_drawdown": 0.0,
+      "sharpe_ratio": 0.0,
+      "last_10_trades": [],
+      "base_weight": 1.0,
+      "volatility_preference": 1.3,
+      "trend_preference": 1.5
+    },
+    "mean_reversion": {
+      "total_trades": 0,
+      "winning_trades": 0,
+      "losing_trades": 0,
+      "total_pnl": 0.0,
+      "avg_trade_duration": 0.0,
+      "max_drawdown": 0.0,
+      "sharpe_ratio": 0.0,
+      "last_10_trades": [],
+      "base_weight": 1.0,
+      "volatility_preference": 1.8,
+      "trend_preference": 0.6
+    },
+    "rsi_strategy": {
+      "total_trades": 0,
+      "winning_trades": 0,
+      "losing_trades": 0,
+      "total_pnl": 0.0,
+      "avg_trade_duration": 0.0,
+      "max_drawdown": 0.0,
+      "sharpe_ratio": 0.0,
+      "last_10_trades": [],
+      "base_weight": 1.0,
+      "volatility_preference": 1.4,
+      "trend_preference": 0.8
+    },
+    "half_year_strategy": {
+      "total_trades": 0,
+      "winning_trades": 0,
+      "losing_trades": 0,
+      "total_pnl": 0.0,
+      "avg_trade_duration": 0.0,
+      "max_drawdown": 0.0,
+      "sharpe_ratio": 0.0,
+      "last_10_trades": [],
+      "base_weight": 1.0,
+      "volatility_preference": 0.5,
+      "trend_preference": 1.9
+    }
+  },
+  "last_updated": "2025-08-16T17:31:13.328921",
+  "version": "1.0"
+}

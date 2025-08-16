@@ -674,3 +674,461 @@
 2025-08-15 14:26:47,913 - __main__ - INFO - BNBUSDT: mean_reversion -> no signal
 2025-08-15 14:26:48,122 - __main__ - INFO - BNBUSDT: rsi_strategy -> no signal
 2025-08-15 14:26:48,862 - __main__ - INFO - BNBUSDT: half_year_strategy -> no signal
+2025-08-16 17:06:09,274 - __main__ - INFO - Файл strategy_performance.json не найден, создаем новые данные
+2025-08-16 17:06:09,274 - __main__ - INFO - ============================================================
+2025-08-16 17:06:09,275 - __main__ - INFO - Starting Enhanced Bybit Trading Bot
+2025-08-16 17:06:09,275 - __main__ - INFO - ============================================================
+2025-08-16 17:06:10,404 - __main__ - INFO - Account balance updated: $5338.67
+2025-08-16 17:06:10,404 - __main__ - INFO - Initial balance: $5338.67
+2025-08-16 17:06:10,404 - __main__ - INFO - 
+--- Iteration 1 ---
+2025-08-16 17:06:10,750 - __main__ - INFO - BTCUSDT: DOWN -0.14% ($117494.90 -> $117330.60)
+2025-08-16 17:06:11,052 - __main__ - INFO - ETHUSDT: DOWN -1.29% ($4445.92 -> $4388.59)
+2025-08-16 17:06:11,360 - __main__ - INFO - SOLUSDT: DOWN -1.42% ($188.57 -> $185.89)
+2025-08-16 17:06:11,678 - __main__ - INFO - XRPUSDT: DOWN -0.29% ($3.12 -> $3.11)
+2025-08-16 17:06:11,990 - __main__ - INFO - DOGEUSDT: DOWN -2.05% ($0.23 -> $0.23)
+2025-08-16 17:06:12,293 - __main__ - INFO - BNBUSDT: DOWN -0.98% ($834.80 -> $826.60)
+2025-08-16 17:06:12,294 - __main__ - INFO - Strategy performance: 
+=== STRATEGY PERFORMANCE SUMMARY ===
+sma_crossover   | No trades yet
+breakout        | No trades yet
+mean_reversion  | No trades yet
+rsi_strategy    | No trades yet
+half_year_strategy | No trades yet
+2025-08-16 17:06:12,594 - __main__ - INFO - BTCUSDT market: volatility=0.03, trend=0.00, volume_ratio=0.13
+2025-08-16 17:06:14,251 - __main__ - INFO - BTCUSDT signals: sma_crossover:Sell, breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:06:14,251 - __main__ - INFO - BTCUSDT: final decision - sma_crossover -> Sell, SL=$119090.46, TP=$115570.54
+2025-08-16 17:06:14,891 - __main__ - INFO - BTCUSDT: placing Sell order: qty=0.0070, price=$117330.50, SL=$119090.50, TP=$115570.50, leverage=9x
+2025-08-16 17:06:15,797 - __main__ - ERROR - BTCUSDT: Exception during order placement: set stopLoss takeProfit exceeds the limit  oldTpNum+oldStNum+newNum=(2 the num is tp+sl) > 20 So set fail (ErrCode: 110061) (ErrTime: 12:06:15).
+Request → POST https://api-demo.bybit.com/v5/order/create: {"category": "linear", "symbol": "BTCUSDT", "side": "Sell", "orderType": "Market", "qty": "0.007", "timeInForce": "ImmediateOrCancel", "stopLoss": "119090.5", "takeProfit": "115570.5", "tpslMode": "Partial"}.
+2025-08-16 17:06:15,804 - __main__ - ERROR - BTCUSDT: Traceback: Traceback (most recent call last):
+  File "C:\Users\asutp\Desktop\o3cripto-main\bot.py", line 962, in place_order
+    result = self.session.place_order(
+        category="linear",
+    ...<7 lines>...
+        tpslMode="Partial",
+    )
+  File "C:\Users\asutp\AppData\Roaming\Python\Python313\site-packages\pybit\_v5_trade.py", line 21, in place_order
+    return self._submit_request(
+           ~~~~~~~~~~~~~~~~~~~~^
+        method="POST",
+        ^^^^^^^^^^^^^^
+    ...<2 lines>...
+        auth=True,
+        ^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\asutp\AppData\Roaming\Python\Python313\site-packages\pybit\_http_manager.py", line 377, in _submit_request
+    raise InvalidRequestError(
+    ...<5 lines>...
+    )
+pybit.exceptions.InvalidRequestError: set stopLoss takeProfit exceeds the limit  oldTpNum+oldStNum+newNum=(2 the num is tp+sl) > 20 So set fail (ErrCode: 110061) (ErrTime: 12:06:15).
+Request → POST https://api-demo.bybit.com/v5/order/create: {"category": "linear", "symbol": "BTCUSDT", "side": "Sell", "orderType": "Market", "qty": "0.007", "timeInForce": "ImmediateOrCancel", "stopLoss": "119090.5", "takeProfit": "115570.5", "tpslMode": "Partial"}.
+
+2025-08-16 17:06:15,805 - __main__ - ERROR - BTCUSDT: order failed: {'retCode': -1, 'retMsg': 'Exception: set stopLoss takeProfit exceeds the limit  oldTpNum+oldStNum+newNum=(2 the num is tp+sl) > 20 So set fail (ErrCode: 110061) (ErrTime: 12:06:15).\nRequest → POST https://api-demo.bybit.com/v5/order/create: {"category": "linear", "symbol": "BTCUSDT", "side": "Sell", "orderType": "Market", "qty": "0.007", "timeInForce": "ImmediateOrCancel", "stopLoss": "119090.5", "takeProfit": "115570.5", "tpslMode": "Partial"}.'}
+2025-08-16 17:06:15,805 - __main__ - INFO - Updated sma_crossover: 0/1 wins, total PnL: $0.00
+2025-08-16 17:06:16,173 - __main__ - INFO - ETHUSDT market: volatility=0.12, trend=0.00, volume_ratio=0.35
+2025-08-16 17:06:17,754 - __main__ - INFO - ETHUSDT signals: breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:06:17,754 - __main__ - INFO - ETHUSDT: no clear trading signal after conflict resolution
+2025-08-16 17:06:18,064 - __main__ - INFO - SOLUSDT market: volatility=0.13, trend=0.00, volume_ratio=0.44
+2025-08-16 17:06:19,502 - __main__ - INFO - SOLUSDT signals: breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:06:19,503 - __main__ - INFO - SOLUSDT: no clear trading signal after conflict resolution
+2025-08-16 17:06:19,806 - __main__ - INFO - XRPUSDT market: volatility=0.13, trend=0.00, volume_ratio=0.36
+2025-08-16 17:06:21,649 - __main__ - INFO - XRPUSDT signals: breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:06:21,649 - __main__ - INFO - XRPUSDT: no clear trading signal after conflict resolution
+2025-08-16 17:06:22,059 - __main__ - INFO - DOGEUSDT market: volatility=0.16, trend=0.01, volume_ratio=0.22
+2025-08-16 17:06:23,377 - __main__ - INFO - DOGEUSDT signals: breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:06:23,378 - __main__ - INFO - DOGEUSDT: no clear trading signal after conflict resolution
+2025-08-16 17:06:23,686 - __main__ - INFO - BNBUSDT market: volatility=0.08, trend=0.00, volume_ratio=0.12
+2025-08-16 17:06:25,221 - __main__ - INFO - BNBUSDT signals: breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:06:25,221 - __main__ - INFO - BNBUSDT: no clear trading signal after conflict resolution
+2025-08-16 17:06:25,222 - __main__ - INFO - Waiting 60 seconds before next iteration...
+2025-08-16 17:12:46,438 - __main__ - INFO - Файл strategy_performance.json не найден, создаем новые данные
+2025-08-16 17:12:46,438 - __main__ - INFO - ============================================================
+2025-08-16 17:12:46,439 - __main__ - INFO - Starting Enhanced Bybit Trading Bot
+2025-08-16 17:12:46,439 - __main__ - INFO - ============================================================
+2025-08-16 17:12:47,886 - __main__ - INFO - Account balance updated: $5279.23
+2025-08-16 17:12:47,886 - __main__ - INFO - Initial balance: $5279.23
+2025-08-16 17:12:47,887 - __main__ - INFO - 
+--- Iteration 1 ---
+2025-08-16 17:12:48,206 - __main__ - INFO - BTCUSDT: DOWN -0.09% ($117483.10 -> $117374.10)
+2025-08-16 17:12:48,511 - __main__ - INFO - ETHUSDT: DOWN -1.08% ($4442.32 -> $4394.33)
+2025-08-16 17:12:48,814 - __main__ - INFO - SOLUSDT: DOWN -1.40% ($188.44 -> $185.81)
+2025-08-16 17:12:49,130 - __main__ - INFO - XRPUSDT: DOWN -0.39% ($3.12 -> $3.11)
+2025-08-16 17:12:49,436 - __main__ - INFO - DOGEUSDT: DOWN -2.44% ($0.23 -> $0.23)
+2025-08-16 17:12:50,092 - __main__ - INFO - BNBUSDT: DOWN -0.96% ($834.40 -> $826.40)
+2025-08-16 17:12:50,093 - __main__ - INFO - Strategy performance: 
+=== STRATEGY PERFORMANCE SUMMARY ===
+sma_crossover   | No trades yet
+breakout        | No trades yet
+mean_reversion  | No trades yet
+rsi_strategy    | No trades yet
+half_year_strategy | No trades yet
+2025-08-16 17:12:50,397 - __main__ - INFO - BTCUSDT market: volatility=0.03, trend=0.00, volume_ratio=0.34
+2025-08-16 17:12:51,986 - __main__ - INFO - BTCUSDT signals: sma_crossover:Sell, breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:12:51,987 - __main__ - INFO - BTCUSDT: final decision - sma_crossover -> Sell, SL=$119134.71, TP=$115613.49
+2025-08-16 17:12:52,608 - __main__ - INFO - BTCUSDT: placing Sell order: qty=0.0070, price=$117374.10, SL=$119134.70, TP=$115613.50, leverage=9x
+2025-08-16 17:12:53,236 - __main__ - INFO - BTCUSDT: Order placed successfully
+2025-08-16 17:12:53,236 - __main__ - INFO - Position added: BTCUSDT Sell amount=102.2255375529516 price=117374.1 SL=119134.7 TP=115613.5 strategy=sma_crossover
+2025-08-16 17:12:53,236 - __main__ - INFO - BTCUSDT: order placed successfully via sma_crossover
+2025-08-16 17:12:53,237 - __main__ - INFO - BTCUSDT: trade executed successfully
+2025-08-16 17:12:53,554 - __main__ - INFO - ETHUSDT market: volatility=0.12, trend=0.00, volume_ratio=0.33
+2025-08-16 17:12:55,130 - __main__ - INFO - ETHUSDT signals: sma_crossover:Sell, breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:12:55,131 - __main__ - INFO - ETHUSDT: final decision - sma_crossover -> Sell, SL=$4460.33, TP=$4328.49
+2025-08-16 17:12:55,759 - __main__ - INFO - ETHUSDT: placing Sell order: qty=0.1700, price=$4394.99, SL=$4460.33, TP=$4328.49, leverage=8x
+2025-08-16 17:12:56,392 - __main__ - INFO - ETHUSDT: Order placed successfully
+2025-08-16 17:12:56,393 - __main__ - INFO - Position added: ETHUSDT Sell amount=94.43460325091256 price=4394.99 SL=4460.33 TP=4328.49 strategy=sma_crossover
+2025-08-16 17:12:56,394 - __main__ - INFO - ETHUSDT: order placed successfully via sma_crossover
+2025-08-16 17:12:56,394 - __main__ - INFO - ETHUSDT: trade executed successfully
+2025-08-16 17:12:56,697 - __main__ - INFO - SOLUSDT market: volatility=0.13, trend=0.00, volume_ratio=0.41
+2025-08-16 17:12:58,613 - __main__ - INFO - SOLUSDT signals: sma_crossover:Sell, breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:12:58,614 - __main__ - INFO - SOLUSDT: final decision - sma_crossover -> Sell, SL=$188.64, TP=$183.06
+2025-08-16 17:12:59,240 - __main__ - INFO - SOLUSDT: placing Sell order: qty=4.0000, price=$185.85, SL=$188.64, TP=$183.06, leverage=8x
+2025-08-16 17:12:59,849 - __main__ - INFO - SOLUSDT: Order placed successfully
+2025-08-16 17:12:59,850 - __main__ - INFO - Position added: SOLUSDT Sell amount=93.4037695829688 price=185.85 SL=188.64 TP=183.06 strategy=sma_crossover
+2025-08-16 17:12:59,850 - __main__ - INFO - SOLUSDT: order placed successfully via sma_crossover
+2025-08-16 17:12:59,851 - __main__ - INFO - SOLUSDT: trade executed successfully
+2025-08-16 17:12:59,851 - __main__ - INFO - Cannot open XRPUSDT: max positions reached (3)
+2025-08-16 17:12:59,851 - __main__ - INFO - Cannot open DOGEUSDT: max positions reached (3)
+2025-08-16 17:12:59,851 - __main__ - INFO - Cannot open BNBUSDT: max positions reached (3)
+2025-08-16 17:12:59,851 - __main__ - INFO - Waiting 60 seconds before next iteration...
+2025-08-16 17:13:59,852 - __main__ - INFO - 
+--- Iteration 2 ---
+2025-08-16 17:14:00,642 - __main__ - INFO - BTCUSDT: DOWN -0.10% ($117483.10 -> $117360.00)
+2025-08-16 17:14:01,124 - __main__ - INFO - ETHUSDT: DOWN -1.16% ($4442.32 -> $4390.94)
+2025-08-16 17:14:01,731 - __main__ - INFO - SOLUSDT: DOWN -1.38% ($188.44 -> $185.84)
+2025-08-16 17:14:02,595 - __main__ - INFO - XRPUSDT: DOWN -0.32% ($3.12 -> $3.11)
+2025-08-16 17:14:03,011 - __main__ - INFO - DOGEUSDT: DOWN -2.57% ($0.23 -> $0.23)
+2025-08-16 17:14:03,731 - __main__ - INFO - BNBUSDT: DOWN -0.93% ($834.40 -> $826.60)
+2025-08-16 17:14:03,732 - __main__ - INFO - Strategy performance: 
+=== STRATEGY PERFORMANCE SUMMARY ===
+sma_crossover   | No trades yet
+breakout        | No trades yet
+mean_reversion  | No trades yet
+rsi_strategy    | No trades yet
+half_year_strategy | No trades yet
+2025-08-16 17:14:03,732 - __main__ - INFO - Open positions: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']
+2025-08-16 17:14:04,775 - __main__ - INFO - Cannot open BTCUSDT: max positions reached (3)
+2025-08-16 17:14:04,776 - __main__ - INFO - Cannot open ETHUSDT: max positions reached (3)
+2025-08-16 17:14:04,776 - __main__ - INFO - Cannot open SOLUSDT: max positions reached (3)
+2025-08-16 17:14:04,776 - __main__ - INFO - Cannot open XRPUSDT: max positions reached (3)
+2025-08-16 17:14:04,776 - __main__ - INFO - Cannot open DOGEUSDT: max positions reached (3)
+2025-08-16 17:14:04,777 - __main__ - INFO - Cannot open BNBUSDT: max positions reached (3)
+2025-08-16 17:14:04,777 - __main__ - INFO - Waiting 60 seconds before next iteration...
+2025-08-16 17:15:04,777 - __main__ - INFO - 
+--- Iteration 3 ---
+2025-08-16 17:15:05,103 - __main__ - INFO - BTCUSDT: DOWN -0.09% ($117490.20 -> $117379.90)
+2025-08-16 17:15:05,424 - __main__ - INFO - ETHUSDT: DOWN -1.07% ($4442.12 -> $4394.39)
+2025-08-16 17:15:05,747 - __main__ - INFO - SOLUSDT: DOWN -1.34% ($188.40 -> $185.88)
+2025-08-16 17:15:06,054 - __main__ - INFO - XRPUSDT: DOWN -0.16% ($3.12 -> $3.11)
+2025-08-16 17:15:06,382 - __main__ - INFO - DOGEUSDT: DOWN -2.69% ($0.23 -> $0.23)
+2025-08-16 17:15:06,689 - __main__ - INFO - BNBUSDT: DOWN -0.91% ($834.40 -> $826.80)
+2025-08-16 17:15:06,690 - __main__ - INFO - Strategy performance: 
+=== STRATEGY PERFORMANCE SUMMARY ===
+sma_crossover   | No trades yet
+breakout        | No trades yet
+mean_reversion  | No trades yet
+rsi_strategy    | No trades yet
+half_year_strategy | No trades yet
+2025-08-16 17:15:06,690 - __main__ - INFO - Open positions: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']
+2025-08-16 17:15:07,792 - __main__ - INFO - Cannot open BTCUSDT: max positions reached (3)
+2025-08-16 17:15:07,793 - __main__ - INFO - Cannot open ETHUSDT: max positions reached (3)
+2025-08-16 17:15:07,793 - __main__ - INFO - Cannot open SOLUSDT: max positions reached (3)
+2025-08-16 17:15:07,794 - __main__ - INFO - Cannot open XRPUSDT: max positions reached (3)
+2025-08-16 17:15:07,794 - __main__ - INFO - Cannot open DOGEUSDT: max positions reached (3)
+2025-08-16 17:15:07,794 - __main__ - INFO - Cannot open BNBUSDT: max positions reached (3)
+2025-08-16 17:15:07,794 - __main__ - INFO - Waiting 60 seconds before next iteration...
+2025-08-16 17:16:07,795 - __main__ - INFO - 
+--- Iteration 4 ---
+2025-08-16 17:16:08,097 - __main__ - INFO - BTCUSDT: DOWN -0.08% ($117490.20 -> $117397.60)
+2025-08-16 17:16:08,399 - __main__ - INFO - ETHUSDT: DOWN -1.09% ($4442.12 -> $4393.72)
+2025-08-16 17:16:08,718 - __main__ - INFO - SOLUSDT: DOWN -1.30% ($188.40 -> $185.95)
+2025-08-16 17:16:09,034 - __main__ - INFO - XRPUSDT: DOWN -0.15% ($3.12 -> $3.11)
+2025-08-16 17:16:09,730 - __main__ - INFO - DOGEUSDT: DOWN -2.74% ($0.23 -> $0.23)
+2025-08-16 17:16:10,034 - __main__ - INFO - BNBUSDT: DOWN -0.89% ($834.40 -> $827.00)
+2025-08-16 17:16:10,035 - __main__ - INFO - Strategy performance: 
+=== STRATEGY PERFORMANCE SUMMARY ===
+sma_crossover   | No trades yet
+breakout        | No trades yet
+mean_reversion  | No trades yet
+rsi_strategy    | No trades yet
+half_year_strategy | No trades yet
+2025-08-16 17:16:10,035 - __main__ - INFO - Open positions: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']
+2025-08-16 17:16:10,951 - __main__ - INFO - Cannot open BTCUSDT: max positions reached (3)
+2025-08-16 17:16:10,951 - __main__ - INFO - Cannot open ETHUSDT: max positions reached (3)
+2025-08-16 17:16:10,952 - __main__ - INFO - Cannot open SOLUSDT: max positions reached (3)
+2025-08-16 17:16:10,952 - __main__ - INFO - Cannot open XRPUSDT: max positions reached (3)
+2025-08-16 17:16:10,952 - __main__ - INFO - Cannot open DOGEUSDT: max positions reached (3)
+2025-08-16 17:16:10,953 - __main__ - INFO - Cannot open BNBUSDT: max positions reached (3)
+2025-08-16 17:16:10,953 - __main__ - INFO - Waiting 60 seconds before next iteration...
+2025-08-16 17:27:30,411 - __main__ - INFO - Файл strategy_performance.json не найден, создаем новые данные
+2025-08-16 17:27:30,412 - __main__ - INFO - ============================================================
+2025-08-16 17:27:30,412 - __main__ - INFO - Max positions per symbol: 3
+2025-08-16 17:27:30,412 - __main__ - INFO - Max total positions: 18
+2025-08-16 17:27:30,413 - __main__ - INFO - Allowed symbols: BTCUSDT, ETHUSDT, SOLUSDT, XRPUSDT, DOGEUSDT, BNBUSDT
+2025-08-16 17:27:30,413 - __main__ - INFO - ============================================================
+2025-08-16 17:27:31,311 - __main__ - INFO - Account balance updated: $5277.96
+2025-08-16 17:27:31,312 - __main__ - INFO - Initial balance: $5277.96
+2025-08-16 17:27:31,312 - __main__ - INFO - 
+--- Iteration 1 ---
+2025-08-16 17:27:31,629 - __main__ - INFO - BTCUSDT: DOWN -0.08% ($117492.40 -> $117395.60)
+2025-08-16 17:27:31,941 - __main__ - INFO - ETHUSDT: DOWN -1.55% ($4448.00 -> $4378.90)
+2025-08-16 17:27:32,256 - __main__ - INFO - SOLUSDT: DOWN -1.71% ($188.49 -> $185.27)
+2025-08-16 17:27:32,589 - __main__ - INFO - XRPUSDT: DOWN -0.79% ($3.13 -> $3.10)
+2025-08-16 17:27:32,908 - __main__ - INFO - DOGEUSDT: DOWN -2.63% ($0.23 -> $0.23)
+2025-08-16 17:27:33,245 - __main__ - INFO - BNBUSDT: DOWN -1.07% ($834.90 -> $826.00)
+2025-08-16 17:27:33,246 - __main__ - INFO - Strategy performance: 
+=== STRATEGY PERFORMANCE SUMMARY ===
+sma_crossover   | No trades yet
+breakout        | No trades yet
+mean_reversion  | No trades yet
+rsi_strategy    | No trades yet
+half_year_strategy | No trades yet
+2025-08-16 17:27:33,553 - __main__ - INFO - BTCUSDT market: volatility=0.03, trend=0.00, volume_ratio=0.35
+2025-08-16 17:27:35,351 - __main__ - INFO - BTCUSDT signals: sma_crossover:Sell, breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:27:35,351 - __main__ - INFO - BTCUSDT: final decision - sma_crossover -> Sell, SL=$117982.48, TP=$116808.52
+2025-08-16 17:27:35,984 - __main__ - INFO - BTCUSDT: placing Sell order: qty=0.0070, price=$117395.50, SL=$117982.50, TP=$116808.50, leverage=9x
+2025-08-16 17:27:36,297 - __main__ - ERROR - Error setting leverage for BTCUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 12:27:36).
+Request → POST https://api-demo.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "BTCUSDT", "buyLeverage": "9", "sellLeverage": "9"}.
+2025-08-16 17:27:36,648 - __main__ - INFO - BTCUSDT: Order placed successfully
+2025-08-16 17:27:36,649 - __main__ - INFO - Position added: BTCUSDT Sell amount=102.24041749413871 price=117395.5 SL=117982.5 TP=116808.5 strategy=sma_crossover (total: 1/3)
+2025-08-16 17:27:36,649 - __main__ - INFO - BTCUSDT: order placed successfully via sma_crossover
+2025-08-16 17:27:36,649 - __main__ - INFO - BTCUSDT: trade executed successfully
+2025-08-16 17:27:37,154 - __main__ - INFO - ETHUSDT market: volatility=0.12, trend=0.00, volume_ratio=0.51
+2025-08-16 17:27:39,075 - __main__ - INFO - ETHUSDT signals: sma_crossover:Sell, breakout:Hold, mean_reversion:Hold, rsi_strategy:Buy, half_year_strategy:Hold
+2025-08-16 17:27:39,076 - __main__ - INFO - Signal conflict detected: 1 BUY, 1 SELL
+2025-08-16 17:27:39,076 - __main__ - WARNING - Buy/Sell conflict detected - choosing highest rated strategy
+2025-08-16 17:27:39,077 - __main__ - INFO - Conflict resolved: sma_crossover wins with score 4.08 -> Sell
+2025-08-16 17:27:39,077 - __main__ - INFO - ETHUSDT: final decision - sma_crossover -> Sell, SL=$4400.38, TP=$4355.60
+2025-08-16 17:27:39,716 - __main__ - INFO - ETHUSDT: placing Sell order: qty=0.1700, price=$4378.50, SL=$4400.38, TP=$4355.60, leverage=8x
+2025-08-16 17:27:40,024 - __main__ - ERROR - Error setting leverage for ETHUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 12:27:40).
+Request → POST https://api-demo.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "ETHUSDT", "buyLeverage": "8", "sellLeverage": "8"}.
+2025-08-16 17:27:40,338 - __main__ - INFO - ETHUSDT: Order placed successfully
+2025-08-16 17:27:40,338 - __main__ - INFO - Position added: ETHUSDT Sell amount=94.00027913135568 price=4378.5 SL=4400.38 TP=4355.6 strategy=sma_crossover (total: 1/3)
+2025-08-16 17:27:40,338 - __main__ - INFO - ETHUSDT: order placed successfully via sma_crossover
+2025-08-16 17:27:40,339 - __main__ - INFO - ETHUSDT: trade executed successfully
+2025-08-16 17:27:40,649 - __main__ - INFO - SOLUSDT market: volatility=0.14, trend=0.01, volume_ratio=0.61
+2025-08-16 17:27:42,833 - __main__ - INFO - SOLUSDT signals: sma_crossover:Sell, breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:27:42,834 - __main__ - INFO - SOLUSDT: final decision - sma_crossover -> Sell, SL=$186.20, TP=$184.22
+2025-08-16 17:27:43,464 - __main__ - INFO - SOLUSDT: placing Sell order: qty=4.0000, price=$185.27, SL=$186.20, TP=$184.22, leverage=8x
+2025-08-16 17:27:43,772 - __main__ - ERROR - Error setting leverage for SOLUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 12:27:43).
+Request → POST https://api-demo.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "SOLUSDT", "buyLeverage": "8", "sellLeverage": "8"}.
+2025-08-16 17:27:44,082 - __main__ - INFO - SOLUSDT: Order placed successfully
+2025-08-16 17:27:44,083 - __main__ - INFO - Position added: SOLUSDT Sell amount=92.72260584788262 price=185.27 SL=186.2 TP=184.22 strategy=sma_crossover (total: 1/3)
+2025-08-16 17:27:44,083 - __main__ - INFO - SOLUSDT: order placed successfully via sma_crossover
+2025-08-16 17:27:44,084 - __main__ - INFO - SOLUSDT: trade executed successfully
+2025-08-16 17:27:44,393 - __main__ - INFO - XRPUSDT market: volatility=0.13, trend=0.01, volume_ratio=1.13
+2025-08-16 17:27:45,958 - __main__ - INFO - XRPUSDT signals: sma_crossover:Sell, breakout:Sell, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:27:45,959 - __main__ - INFO - Signal conflict detected: 0 BUY, 2 SELL
+2025-08-16 17:27:45,959 - __main__ - INFO - Best signal selected: sma_crossover (score: 4.08) -> Sell
+2025-08-16 17:27:45,960 - __main__ - INFO - XRPUSDT: final decision - sma_crossover -> Sell, SL=$3.12, TP=$3.09
+2025-08-16 17:27:46,584 - __main__ - INFO - XRPUSDT: placing Sell order: qty=240.0000, price=$3.10, SL=$3.12, TP=$3.09, leverage=8x
+2025-08-16 17:27:47,450 - __main__ - INFO - XRPUSDT: Order placed successfully
+2025-08-16 17:27:47,451 - __main__ - INFO - Position added: XRPUSDT Sell amount=93.29120325704416 price=3.1015 SL=3.1168 TP=3.0856 strategy=sma_crossover (total: 1/3)
+2025-08-16 17:27:47,451 - __main__ - INFO - XRPUSDT: order placed successfully via sma_crossover
+2025-08-16 17:27:47,452 - __main__ - INFO - XRPUSDT: trade executed successfully
+2025-08-16 17:27:48,096 - __main__ - INFO - DOGEUSDT market: volatility=0.19, trend=0.01, volume_ratio=0.39
+2025-08-16 17:27:49,838 - __main__ - INFO - DOGEUSDT signals: sma_crossover:Sell, breakout:Hold, mean_reversion:Hold, rsi_strategy:Buy, half_year_strategy:Hold
+2025-08-16 17:27:49,838 - __main__ - INFO - Signal conflict detected: 1 BUY, 1 SELL
+2025-08-16 17:27:49,839 - __main__ - WARNING - Buy/Sell conflict detected - choosing highest rated strategy
+2025-08-16 17:27:49,839 - __main__ - INFO - Conflict resolved: sma_crossover wins with score 4.10 -> Sell
+2025-08-16 17:27:49,839 - __main__ - INFO - DOGEUSDT: final decision - sma_crossover -> Sell, SL=$0.23, TP=$0.22
+2025-08-16 17:27:50,464 - __main__ - INFO - DOGEUSDT: placing Sell order: qty=3145.0000, price=$0.23, SL=$0.23, TP=$0.22, leverage=8x
+2025-08-16 17:27:51,438 - __main__ - INFO - DOGEUSDT: Order placed successfully
+2025-08-16 17:27:51,438 - __main__ - INFO - Position added: DOGEUSDT Sell amount=89.04879728744811 price=0.22647 SL=0.22761 TP=0.22456 strategy=sma_crossover (total: 1/3)
+2025-08-16 17:27:51,438 - __main__ - INFO - DOGEUSDT: order placed successfully via sma_crossover
+2025-08-16 17:27:51,439 - __main__ - INFO - DOGEUSDT: trade executed successfully
+2025-08-16 17:27:51,792 - __main__ - INFO - BNBUSDT market: volatility=0.09, trend=0.00, volume_ratio=2.13
+2025-08-16 17:27:53,466 - __main__ - INFO - BNBUSDT signals: sma_crossover:Sell, breakout:Hold, mean_reversion:Hold, rsi_strategy:Buy, half_year_strategy:Hold
+2025-08-16 17:27:53,466 - __main__ - INFO - Signal conflict detected: 1 BUY, 1 SELL
+2025-08-16 17:27:53,466 - __main__ - WARNING - Buy/Sell conflict detected - choosing highest rated strategy
+2025-08-16 17:27:53,466 - __main__ - INFO - Conflict resolved: sma_crossover wins with score 4.07 -> Sell
+2025-08-16 17:27:53,467 - __main__ - INFO - BNBUSDT: final decision - sma_crossover -> Sell, SL=$830.13, TP=$821.87
+2025-08-16 17:27:54,578 - __main__ - INFO - BNBUSDT: placing Sell order: qty=1.0500, price=$826.10, SL=$830.10, TP=$821.90, leverage=9x
+2025-08-16 17:27:55,554 - __main__ - INFO - BNBUSDT: Order placed successfully
+2025-08-16 17:27:55,555 - __main__ - INFO - Position added: BNBUSDT Sell amount=96.9141001191782 price=826.1 SL=830.1 TP=821.9 strategy=sma_crossover (total: 1/3)
+2025-08-16 17:27:55,555 - __main__ - INFO - BNBUSDT: order placed successfully via sma_crossover
+2025-08-16 17:27:55,556 - __main__ - INFO - BNBUSDT: trade executed successfully
+2025-08-16 17:27:55,556 - __main__ - INFO - Waiting 60 seconds before next iteration...
+2025-08-16 17:28:55,557 - __main__ - INFO - 
+--- Iteration 2 ---
+2025-08-16 17:28:55,931 - __main__ - INFO - BTCUSDT: DOWN -0.04% ($117492.40 -> $117450.60)
+2025-08-16 17:28:56,481 - __main__ - INFO - ETHUSDT: DOWN -1.46% ($4448.00 -> $4383.28)
+2025-08-16 17:28:56,796 - __main__ - INFO - SOLUSDT: DOWN -1.46% ($188.49 -> $185.74)
+2025-08-16 17:28:57,138 - __main__ - INFO - XRPUSDT: DOWN -0.73% ($3.13 -> $3.10)
+2025-08-16 17:28:57,464 - __main__ - INFO - DOGEUSDT: DOWN -2.53% ($0.23 -> $0.23)
+2025-08-16 17:28:57,798 - __main__ - INFO - BNBUSDT: DOWN -0.93% ($834.90 -> $827.10)
+2025-08-16 17:28:57,798 - __main__ - INFO - Strategy performance: 
+=== STRATEGY PERFORMANCE SUMMARY ===
+sma_crossover   | No trades yet
+breakout        | No trades yet
+mean_reversion  | No trades yet
+rsi_strategy    | No trades yet
+half_year_strategy | No trades yet
+2025-08-16 17:28:57,798 - __main__ - INFO - Open positions (6/18): BTCUSDT:1, ETHUSDT:1, SOLUSDT:1, XRPUSDT:1, DOGEUSDT:1, BNBUSDT:1
+2025-08-16 17:28:59,826 - __main__ - INFO - Waiting 60 seconds before next iteration...
+2025-08-16 17:29:59,827 - __main__ - INFO - 
+--- Iteration 3 ---
+2025-08-16 17:30:00,305 - __main__ - INFO - BTCUSDT: DOWN -0.02% ($117492.40 -> $117470.60)
+2025-08-16 17:30:00,930 - __main__ - INFO - ETHUSDT: DOWN -1.31% ($4448.00 -> $4389.72)
+2025-08-16 17:30:01,694 - __main__ - INFO - SOLUSDT: DOWN -1.02% ($188.05 -> $186.13)
+2025-08-16 17:30:02,889 - __main__ - INFO - XRPUSDT: DOWN -0.62% ($3.13 -> $3.11)
+2025-08-16 17:30:03,627 - __main__ - INFO - DOGEUSDT: DOWN -2.20% ($0.23 -> $0.23)
+2025-08-16 17:30:04,186 - __main__ - INFO - BNBUSDT: DOWN -0.76% ($834.40 -> $828.10)
+2025-08-16 17:30:04,187 - __main__ - INFO - Strategy performance: 
+=== STRATEGY PERFORMANCE SUMMARY ===
+sma_crossover   | No trades yet
+breakout        | No trades yet
+mean_reversion  | No trades yet
+rsi_strategy    | No trades yet
+half_year_strategy | No trades yet
+2025-08-16 17:30:04,187 - __main__ - INFO - Open positions (6/18): BTCUSDT:1, ETHUSDT:1, SOLUSDT:1, XRPUSDT:1, DOGEUSDT:1, BNBUSDT:1
+2025-08-16 17:30:05,584 - __main__ - INFO - Stop-loss reached for SOLUSDT (ID: SOLUSDT_0_1755347264) at price 186.2
+2025-08-16 17:30:05,584 - __main__ - INFO - Closing position: SOLUSDT Buy qty=92.7
+2025-08-16 17:30:06,614 - __main__ - INFO - Position closed successfully: SOLUSDT Buy qty=92.7
+2025-08-16 17:30:06,614 - __main__ - INFO - Updated sma_crossover: 0/1 wins, total PnL: $-0.47
+2025-08-16 17:30:06,618 - __main__ - INFO - Trade completed: sma_crossover -> LOSS PnL: $-0.47 (-0.51%) Duration: 2min
+2025-08-16 17:30:06,619 - __main__ - INFO - Position removed: SOLUSDT (ID: SOLUSDT_0_1755347264)
+2025-08-16 17:30:07,905 - __main__ - INFO - Waiting 60 seconds before next iteration...
+2025-08-16 17:31:07,906 - __main__ - INFO - 
+--- Iteration 4 ---
+2025-08-16 17:31:08,624 - __main__ - INFO - BTCUSDT: UP 0.13% ($117466.90 -> $117618.00)
+2025-08-16 17:31:09,241 - __main__ - INFO - ETHUSDT: DOWN -0.81% ($4439.76 -> $4403.65)
+2025-08-16 17:31:09,774 - __main__ - INFO - SOLUSDT: DOWN -0.69% ($188.05 -> $186.76)
+2025-08-16 17:31:10,217 - __main__ - INFO - XRPUSDT: DOWN -0.38% ($3.13 -> $3.11)
+2025-08-16 17:31:10,722 - __main__ - INFO - DOGEUSDT: DOWN -1.85% ($0.23 -> $0.23)
+2025-08-16 17:31:11,282 - __main__ - INFO - BNBUSDT: DOWN -0.53% ($834.40 -> $830.00)
+2025-08-16 17:31:11,282 - __main__ - INFO - Strategy performance: 
+=== STRATEGY PERFORMANCE SUMMARY ===
+sma_crossover   |   0/  1 (  0.0%) | PnL: $   -0.47 ($ -0.47/trade) | Sharpe:  0.00
+breakout        | No trades yet
+mean_reversion  | No trades yet
+rsi_strategy    | No trades yet
+half_year_strategy | No trades yet
+2025-08-16 17:31:11,283 - __main__ - INFO - Open positions (5/18): BTCUSDT:1, ETHUSDT:1, XRPUSDT:1, DOGEUSDT:1, BNBUSDT:1
+2025-08-16 17:31:12,226 - __main__ - INFO - Stop-loss reached for ETHUSDT (ID: ETHUSDT_0_1755347260) at price 4403.55
+2025-08-16 17:31:12,227 - __main__ - INFO - Closing position: ETHUSDT Buy qty=94.0
+2025-08-16 17:31:13,328 - __main__ - INFO - Position closed successfully: ETHUSDT Buy qty=94.0
+2025-08-16 17:31:13,328 - __main__ - INFO - Updated sma_crossover: 0/2 wins, total PnL: $-1.01
+2025-08-16 17:31:13,333 - __main__ - INFO - Trade completed: sma_crossover -> LOSS PnL: $-0.54 (-0.57%) Duration: 3min
+2025-08-16 17:31:13,333 - __main__ - INFO - Position removed: ETHUSDT (ID: ETHUSDT_0_1755347260)
+2025-08-16 17:31:15,351 - __main__ - INFO - Stop-loss reached for DOGEUSDT (ID: DOGEUSDT_0_1755347271) at price 0.22814
+2025-08-16 17:31:15,351 - __main__ - INFO - Closing position: DOGEUSDT Buy qty=89.0
+2025-08-16 17:31:17,113 - __main__ - ERROR - Exception closing position DOGEUSDT: current position is zero, cannot fix reduce-only order qty (ErrCode: 110017) (ErrTime: 12:31:17).
+Request → POST https://api-demo.bybit.com/v5/order/create: {"category": "linear", "symbol": "DOGEUSDT", "side": "Buy", "orderType": "Market", "qty": "89.0", "timeInForce": "ImmediateOrCancel", "reduceOnly": true}.
+2025-08-16 17:31:17,120 - __main__ - ERROR - DOGEUSDT: Traceback: Traceback (most recent call last):
+  File "C:\Users\asutp\Desktop\o3cripto-main\bot.py", line 1282, in close_position
+    result = self.session.place_order(
+        category="linear",
+    ...<5 lines>...
+        reduceOnly=True,
+    )
+  File "C:\Users\asutp\AppData\Roaming\Python\Python313\site-packages\pybit\_v5_trade.py", line 21, in place_order
+    return self._submit_request(
+           ~~~~~~~~~~~~~~~~~~~~^
+        method="POST",
+        ^^^^^^^^^^^^^^
+    ...<2 lines>...
+        auth=True,
+        ^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\asutp\AppData\Roaming\Python\Python313\site-packages\pybit\_http_manager.py", line 377, in _submit_request
+    raise InvalidRequestError(
+    ...<5 lines>...
+    )
+pybit.exceptions.InvalidRequestError: current position is zero, cannot fix reduce-only order qty (ErrCode: 110017) (ErrTime: 12:31:17).
+Request → POST https://api-demo.bybit.com/v5/order/create: {"category": "linear", "symbol": "DOGEUSDT", "side": "Buy", "orderType": "Market", "qty": "89.0", "timeInForce": "ImmediateOrCancel", "reduceOnly": true}.
+
+2025-08-16 17:31:17,871 - __main__ - INFO - Stop-loss reached for BNBUSDT (ID: BNBUSDT_0_1755347275) at price 830.2
+2025-08-16 17:31:17,872 - __main__ - INFO - Closing position: BNBUSDT Buy qty=96.91
+2025-08-16 17:31:19,101 - __main__ - ERROR - Exception closing position BNBUSDT: current position is zero, cannot fix reduce-only order qty (ErrCode: 110017) (ErrTime: 12:31:19).
+Request → POST https://api-demo.bybit.com/v5/order/create: {"category": "linear", "symbol": "BNBUSDT", "side": "Buy", "orderType": "Market", "qty": "96.91", "timeInForce": "ImmediateOrCancel", "reduceOnly": true}.
+2025-08-16 17:31:19,104 - __main__ - ERROR - BNBUSDT: Traceback: Traceback (most recent call last):
+  File "C:\Users\asutp\Desktop\o3cripto-main\bot.py", line 1282, in close_position
+    result = self.session.place_order(
+        category="linear",
+    ...<5 lines>...
+        reduceOnly=True,
+    )
+  File "C:\Users\asutp\AppData\Roaming\Python\Python313\site-packages\pybit\_v5_trade.py", line 21, in place_order
+    return self._submit_request(
+           ~~~~~~~~~~~~~~~~~~~~^
+        method="POST",
+        ^^^^^^^^^^^^^^
+    ...<2 lines>...
+        auth=True,
+        ^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\asutp\AppData\Roaming\Python\Python313\site-packages\pybit\_http_manager.py", line 377, in _submit_request
+    raise InvalidRequestError(
+    ...<5 lines>...
+    )
+pybit.exceptions.InvalidRequestError: current position is zero, cannot fix reduce-only order qty (ErrCode: 110017) (ErrTime: 12:31:19).
+Request → POST https://api-demo.bybit.com/v5/order/create: {"category": "linear", "symbol": "BNBUSDT", "side": "Buy", "orderType": "Market", "qty": "96.91", "timeInForce": "ImmediateOrCancel", "reduceOnly": true}.
+
+2025-08-16 17:31:19,105 - __main__ - INFO - Waiting 60 seconds before next iteration...
+2025-08-16 17:32:19,106 - __main__ - INFO - 
+--- Iteration 5 ---
+2025-08-16 17:32:19,403 - __main__ - INFO - BTCUSDT: UP 0.12% ($117466.90 -> $117606.00)
+2025-08-16 17:32:19,697 - __main__ - INFO - ETHUSDT: DOWN -0.87% ($4439.76 -> $4401.02)
+2025-08-16 17:32:20,368 - __main__ - INFO - SOLUSDT: DOWN -0.88% ($188.05 -> $186.39)
+2025-08-16 17:32:20,681 - __main__ - INFO - XRPUSDT: DOWN -0.53% ($3.13 -> $3.11)
+2025-08-16 17:32:21,000 - __main__ - INFO - DOGEUSDT: DOWN -2.07% ($0.23 -> $0.23)
+2025-08-16 17:32:21,311 - __main__ - INFO - BNBUSDT: DOWN -0.61% ($834.40 -> $829.30)
+2025-08-16 17:32:21,312 - __main__ - INFO - Strategy performance: 
+=== STRATEGY PERFORMANCE SUMMARY ===
+sma_crossover   |   0/  2 (  0.0%) | PnL: $   -1.01 ($ -0.50/trade) | Sharpe:  0.00
+breakout        | No trades yet
+mean_reversion  | No trades yet
+rsi_strategy    | No trades yet
+half_year_strategy | No trades yet
+2025-08-16 17:32:21,312 - __main__ - INFO - Open positions (4/18): BTCUSDT:1, XRPUSDT:1, DOGEUSDT:1, BNBUSDT:1
+2025-08-16 17:32:22,580 - __main__ - INFO - Waiting 60 seconds before next iteration...
+2025-08-16 17:33:22,581 - __main__ - INFO - 
+--- Iteration 6 ---
+2025-08-16 17:33:22,902 - __main__ - INFO - BTCUSDT: UP 0.09% ($117466.90 -> $117577.20)
+2025-08-16 17:33:23,201 - __main__ - INFO - ETHUSDT: DOWN -0.94% ($4439.76 -> $4398.14)
+2025-08-16 17:33:23,516 - __main__ - INFO - SOLUSDT: DOWN -0.97% ($188.05 -> $186.23)
+2025-08-16 17:33:23,811 - __main__ - INFO - XRPUSDT: DOWN -0.51% ($3.13 -> $3.11)
+2025-08-16 17:33:24,122 - __main__ - INFO - DOGEUSDT: DOWN -2.12% ($0.23 -> $0.23)
+2025-08-16 17:33:24,417 - __main__ - INFO - BNBUSDT: DOWN -0.64% ($834.40 -> $829.10)
+2025-08-16 17:33:24,417 - __main__ - INFO - Strategy performance: 
+=== STRATEGY PERFORMANCE SUMMARY ===
+sma_crossover   |   0/  2 (  0.0%) | PnL: $   -1.01 ($ -0.50/trade) | Sharpe:  0.00
+breakout        | No trades yet
+mean_reversion  | No trades yet
+rsi_strategy    | No trades yet
+half_year_strategy | No trades yet
+2025-08-16 17:33:24,418 - __main__ - INFO - Open positions (4/18): BTCUSDT:1, XRPUSDT:1, DOGEUSDT:1, BNBUSDT:1
+2025-08-16 17:33:25,939 - __main__ - INFO - Account balance updated: $5254.82
+2025-08-16 17:33:26,240 - __main__ - INFO - BTCUSDT market: volatility=0.04, trend=0.00, volume_ratio=4.33
+2025-08-16 17:33:27,454 - __main__ - INFO - BTCUSDT signals: breakout:Buy, mean_reversion:Sell, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:33:27,455 - __main__ - INFO - Signal conflict detected: 1 BUY, 1 SELL
+2025-08-16 17:33:27,455 - __main__ - WARNING - Buy/Sell conflict detected - choosing highest rated strategy
+2025-08-16 17:33:27,455 - __main__ - INFO - Conflict resolved: mean_reversion wins with score 4.02 -> Sell
+2025-08-16 17:33:27,455 - __main__ - INFO - BTCUSDT: final decision - mean_reversion -> Sell, SL=$118158.65, TP=$116982.95
+2025-08-16 17:33:27,750 - __main__ - INFO - BTCUSDT: placing Sell order: qty=0.0070, price=$117570.90, SL=$118158.70, TP=$116982.90, leverage=9x
+2025-08-16 17:33:28,068 - __main__ - ERROR - Error setting leverage for BTCUSDT: leverage not modified (ErrCode: 110043) (ErrTime: 12:33:28).
+Request → POST https://api-demo.bybit.com/v5/position/set-leverage: {"category": "linear", "symbol": "BTCUSDT", "buyLeverage": "9", "sellLeverage": "9"}.
+2025-08-16 17:33:28,386 - __main__ - INFO - BTCUSDT: Order placed successfully
+2025-08-16 17:33:28,387 - __main__ - INFO - Position added: BTCUSDT Sell amount=101.53634951622657 price=117570.9 SL=118158.7 TP=116982.9 strategy=mean_reversion (total: 2/3)
+2025-08-16 17:33:28,388 - __main__ - INFO - BTCUSDT: order placed successfully via mean_reversion
+2025-08-16 17:33:28,388 - __main__ - INFO - BTCUSDT: trade executed successfully
+2025-08-16 17:33:28,731 - __main__ - INFO - ETHUSDT market: volatility=0.13, trend=0.00, volume_ratio=1.63
+2025-08-16 17:33:29,945 - __main__ - INFO - ETHUSDT signals: breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:33:29,945 - __main__ - INFO - ETHUSDT: no clear trading signal after conflict resolution
+2025-08-16 17:33:30,259 - __main__ - INFO - SOLUSDT market: volatility=0.14, trend=0.00, volume_ratio=1.68
+2025-08-16 17:33:31,702 - __main__ - INFO - SOLUSDT signals: breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:33:31,703 - __main__ - INFO - SOLUSDT: no clear trading signal after conflict resolution
+2025-08-16 17:33:32,013 - __main__ - INFO - XRPUSDT market: volatility=0.14, trend=0.00, volume_ratio=1.21
+2025-08-16 17:33:33,262 - __main__ - INFO - XRPUSDT signals: breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:33:33,263 - __main__ - INFO - XRPUSDT: no clear trading signal after conflict resolution
+2025-08-16 17:33:33,561 - __main__ - INFO - DOGEUSDT market: volatility=0.19, trend=0.00, volume_ratio=1.18
+2025-08-16 17:33:34,798 - __main__ - INFO - DOGEUSDT signals: breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:33:34,798 - __main__ - INFO - DOGEUSDT: no clear trading signal after conflict resolution
+2025-08-16 17:33:35,112 - __main__ - INFO - BNBUSDT market: volatility=0.10, trend=0.00, volume_ratio=0.63
+2025-08-16 17:33:36,331 - __main__ - INFO - BNBUSDT signals: breakout:Hold, mean_reversion:Hold, rsi_strategy:Hold, half_year_strategy:Hold
+2025-08-16 17:33:36,331 - __main__ - INFO - BNBUSDT: no clear trading signal after conflict resolution
+2025-08-16 17:33:36,331 - __main__ - INFO - Waiting 60 seconds before next iteration...
