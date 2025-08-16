@@ -1,0 +1,6 @@
+pybit
+python-dotenv
+pytest
+pytest-cov
+backtrader
+yfinance

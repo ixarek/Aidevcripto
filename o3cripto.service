@@ -1,0 +1,13 @@
+[Unit]
+Description=o3cripto trading bot
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/o3cripto
+ExecStart=/usr/bin/python3 /root/o3cripto/bot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
