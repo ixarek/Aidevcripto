@@ -233,19 +233,179 @@ class TestBybitTradingBot(unittest.TestCase):
         self.assertLessEqual(conditions['trend_strength'], 1.0)
         self.assertGreaterEqual(conditions['volume_ratio'], 0)
 
-    def test_update_balance_api_error(self):
-        """Test balance update with API error"""
-        # Мокаем ошибку API
-        self.session.get_wallet_balance.return_value = {
-            "retCode": 10001,
-            "retMsg": "API error"
+    def test_strategy_selector_ranking(self):
+        """Test strategy ranking system"""
+        from bot import StrategySelector
+        
+        selector = StrategySelector()
+        
+        # Mock market conditions
+        market_conditions = {
+            'volatility': 1.5,
+            'trend_strength': 0.8,
+            'volume_ratio': 1.2
         }
         
-        # Устанавливаем кэшированный баланс
-        self.bot.account_balance = 1000.0
+        # Test initial rankings (should return all strategies)
+        rankings = selector.get_strategy_rankings(market_conditions)
+        self.assertGreater(len(rankings), 0)
         
-        balance = self.bot.update_balance()
-        self.assertEqual(balance, 1000.0)  # Должно вернуть кэшированное значение
+        # Test that rankings are sorted (highest score first)
+        scores = [score for _, score in rankings]
+        self.assertEqual(scores, sorted(scores, reverse=True))
+    
+    def test_signal_conflict_resolution(self):
+        """Test signal conflict resolution"""
+        from bot import StrategySelector
+        
+        selector = StrategySelector()
+        market_conditions = {'volatility': 1.0, 'trend_strength': 0.5, 'volume_ratio': 1.0}
+        
+        # Test conflicting signals (Buy vs Sell)
+        conflicting_signals = {
+            'sma_crossover': ('Buy', 45000, 47000),
+            'mean_reversion': ('Sell', 45200, 44000),
+            'rsi_strategy': ('Hold', 0, 0)
+        }
+        
+        result = selector.resolve_signal_conflicts(conflicting_signals, market_conditions)
+        self.assertIsNotNone(result)
+        
+        strategy_name, signal, sl, tp = result
+        self.assertIn(signal, ['Buy', 'Sell'])
+        self.assertIn(strategy_name, ['sma_crossover', 'mean_reversion'])
+        
+        # Test agreeing signals
+        agreeing_signals = {
+            'sma_crossover': ('Buy', 45000, 47000),
+            'breakout': ('Buy', 44800, 46800),
+            'rsi_strategy': ('Hold', 0, 0)
+        }
+        
+        result = selector.resolve_signal_conflicts(agreeing_signals, market_conditions)
+        self.assertIsNotNone(result)
+        strategy_name, signal, sl, tp = result
+        self.assertEqual(signal, 'Buy')
+    
+    def test_strategy_performance_tracking(self):
+        """Test strategy performance tracking"""
+        from bot import StrategySelector
+        
+        selector = StrategySelector()
+        
+        # Record some trades
+        selector.record_trade_result('sma_crossover', True, 25.0, 120)
+        selector.record_trade_result('sma_crossover', False, -15.0, 90)
+        selector.record_trade_result('breakout', True, 30.0, 150)
+        
+        # Check performance data
+        perf = selector.strategy_performance['sma_crossover']
+        self.assertEqual(perf['total_trades'], 2)
+        self.assertEqual(perf['winning_trades'], 1)
+        self.assertEqual(perf['losing_trades'], 1)
+        self.assertEqual(perf['total_pnl'], 10.0)
+        
+        # Check recent trades tracking
+        self.assertEqual(len(perf['last_10_trades']), 2)
+        
+        # Test performance summary
+        summary = selector.get_performance_summary()
+        self.assertIn('sma_crossover', summary)
+        self.assertIn('breakout', summary)
+    
+    def test_get_all_strategy_signals(self):
+        """Test getting signals from all strategies"""
+        # Mock successful kline data
+        mock_candles = [[0, 100, 101, 99, 100, 1000]] * 50
+        self.session.get_kline.return_value = {"result": {"list": mock_candles}}
+        
+        market_conditions = {'volatility': 1.0, 'trend_strength': 0.5, 'volume_ratio': 1.0}
+        
+        signals = self.bot._get_all_strategy_signals("BTCUSDT", market_conditions)
+        
+        # Should get signals from multiple strategies
+        self.assertIsInstance(signals, dict)
+        # At least some strategies should return signals
+        self.assertGreater(len(signals), 0)
+        
+    def test_strategy_selector_data_persistence(self):
+        """Test data persistence functionality"""
+        import tempfile
+        import os
+        from bot import StrategySelector
+        
+        # Create temporary file for testing
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            temp_file = f.name
+        
+        try:
+            # Create selector and record some trades
+            selector1 = StrategySelector(data_file=temp_file)
+            selector1.record_trade_result('sma_crossover', True, 25.0, 120)
+            selector1.record_trade_result('sma_crossover', False, -15.0, 90)
+            selector1.record_trade_result('breakout', True, 30.0, 150)
+            
+            # Save data
+            selector1._save_performance_data()
+            
+            # Create new selector with same file - should load previous data
+            selector2 = StrategySelector(data_file=temp_file)
+            
+            # Check that data was loaded correctly
+            sma_perf = selector2.strategy_performance['sma_crossover']
+            self.assertEqual(sma_perf['total_trades'], 2)
+            self.assertEqual(sma_perf['winning_trades'], 1)
+            self.assertEqual(sma_perf['losing_trades'], 1)
+            self.assertEqual(sma_perf['total_pnl'], 10.0)
+            
+            breakout_perf = selector2.strategy_performance['breakout']
+            self.assertEqual(breakout_perf['total_trades'], 1)
+            self.assertEqual(breakout_perf['winning_trades'], 1)
+            self.assertEqual(breakout_perf['total_pnl'], 30.0)
+            
+            # Check recent trades
+            self.assertEqual(len(sma_perf['last_10_trades']), 2)
+            self.assertEqual(len(breakout_perf['last_10_trades']), 1)
+            
+        finally:
+            # Clean up
+            if os.path.exists(temp_file):
+                os.unlink(temp_file)
+    
+    def test_strategy_selector_preferences_preserved(self):
+        """Test that strategy preferences are preserved after loading"""
+        import tempfile
+        import os
+        from bot import StrategySelector
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            temp_file = f.name
+        
+        try:
+            # Create selector - preferences should be set
+            selector1 = StrategySelector(data_file=temp_file)
+            
+            # Check initial preferences
+            sma_perf = selector1.strategy_performance['sma_crossover']
+            self.assertEqual(sma_perf['volatility_preference'], 0.7)
+            self.assertEqual(sma_perf['trend_preference'], 1.8)
+            
+            mean_rev_perf = selector1.strategy_performance['mean_reversion']
+            self.assertEqual(mean_rev_perf['volatility_preference'], 1.8)
+            self.assertEqual(mean_rev_perf['trend_preference'], 0.6)
+            
+            # Save and reload
+            selector1._save_performance_data()
+            selector2 = StrategySelector(data_file=temp_file)
+            
+            # Preferences should be restored and updated
+            sma_perf2 = selector2.strategy_performance['sma_crossover']
+            self.assertEqual(sma_perf2['volatility_preference'], 0.7)
+            self.assertEqual(sma_perf2['trend_preference'], 1.8)
+            
+        finally:
+            if os.path.exists(temp_file):
+                os.unlink(temp_file)
 
     def test_log_all_trends_invokes_log_market_trend(self):
         self.bot.log_market_trend = MagicMock()

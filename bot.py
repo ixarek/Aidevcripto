@@ -2,12 +2,13 @@ from config import BybitConfig
 from pybit.unified_trading import HTTP
 import urllib3
 import logging
+import json
 from pathlib import Path
+from datetime import datetime, timedelta
 from typing import Optional, Callable, Dict, List
 from functools import lru_cache
 from decimal import Decimal, ROUND_HALF_UP
 import time
-import json
 from datetime import datetime, timedelta
 
 from functions import (
@@ -91,8 +92,8 @@ class PositionManager:
                 
         return True
     
-    def add_position(self, symbol: str, side: str, amount: float, price: float, stop_loss: float, take_profit: float):
-        """Добавление новой позиции
+    def add_position(self, symbol: str, side: str, amount: float, price: float, stop_loss: float, take_profit: float, strategy_used: str = None):
+        """Добавление новой позиции с информацией о стратегии
         
         Args:
             symbol: Торговая пара
@@ -101,6 +102,7 @@ class PositionManager:
             price: Цена входа
             stop_loss: Уровень стоп-лосс
             take_profit: Уровень тейк-профит
+            strategy_used: Название использованной стратегии
         """
         self.positions[symbol] = {
             'side': side,
@@ -108,10 +110,12 @@ class PositionManager:
             'entry_price': price,
             'stop_loss': stop_loss,
             'take_profit': take_profit,
-            'timestamp': datetime.now()
+            'timestamp': datetime.now(),
+            'strategy_used': strategy_used,
+            'trade_start_time': datetime.now()
         }
         self.last_trade_time[symbol] = datetime.now()
-        logger.info(f"Position added: {symbol} {side} amount={amount} price={price} SL={stop_loss} TP={take_profit}")
+        logger.info(f"Position added: {symbol} {side} amount={amount} price={price} SL={stop_loss} TP={take_profit} strategy={strategy_used}")
     
     def remove_position(self, symbol: str):
         """Удаление закрытой позиции
@@ -179,18 +183,323 @@ class PositionManager:
 
 
 class StrategySelector:
-    """Интеллектуальный выбор стратегии на основе рыночных условий"""
+    """Интеллектуальный выбор стратегии на основе рыночных условий и исторической эффективности"""
     
-    def __init__(self, strategy_cooldown_minutes: int = 30):
+    def __init__(self, strategy_cooldown_minutes: int = 30, data_file: str = "strategy_performance.json"):
         """Инициализация селектора стратегий
         
         Args:
             strategy_cooldown_minutes: Период кулдауна для стратегий в минутах
+            data_file: Путь к файлу для сохранения данных
         """
+        self.data_file = Path(data_file)
         self.strategy_performance: Dict[str, Dict] = {}
         self.strategy_cooldown: Dict[str, datetime] = {}
         self.cooldown_period = timedelta(minutes=strategy_cooldown_minutes)
         
+        # Загружаем сохраненные данные или инициализируем новые
+        self._load_performance_data()
+        
+        # Инициализируем базовые метрики для всех стратегий (если не загружены)
+        self._init_strategy_metrics()
+        
+        # История сигналов для анализа конфликтов
+        self.signal_history: List[Dict] = []
+    
+    def _load_performance_data(self):
+        """Загружает сохраненные данные о производительности стратегий"""
+        try:
+            if self.data_file.exists():
+                with open(self.data_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.strategy_performance = data.get('strategy_performance', {})
+                    
+                    # Преобразуем datetime объекты из строк
+                    for strategy_name, perf in self.strategy_performance.items():
+                        if 'last_10_trades' in perf:
+                            for trade in perf['last_10_trades']:
+                                if 'timestamp' in trade and isinstance(trade['timestamp'], str):
+                                    trade['timestamp'] = datetime.fromisoformat(trade['timestamp'])
+                    
+                    logger.info(f"Загружены данные о производительности стратегий из {self.data_file}")
+                    
+                    # Логируем краткую сводку
+                    for name, perf in self.strategy_performance.items():
+                        if perf.get('total_trades', 0) > 0:
+                            win_rate = (perf['winning_trades'] / perf['total_trades']) * 100
+                            logger.info(f"  {name}: {perf['winning_trades']}/{perf['total_trades']} ({win_rate:.1f}%), PnL: ${perf['total_pnl']:.2f}")
+            else:
+                logger.info(f"Файл {self.data_file} не найден, создаем новые данные")
+        except Exception as e:
+            logger.error(f"Ошибка при загрузке данных: {e}")
+            logger.info("Используем новые данные")
+    
+    def _save_performance_data(self):
+        """Сохраняет данные о производительности стратегий в файл"""
+        try:
+            # Преобразуем datetime объекты в строки для JSON
+            serializable_data = {}
+            for strategy_name, perf in self.strategy_performance.items():
+                serializable_perf = perf.copy()
+                if 'last_10_trades' in serializable_perf:
+                    for trade in serializable_perf['last_10_trades']:
+                        if 'timestamp' in trade and hasattr(trade['timestamp'], 'isoformat'):
+                            trade['timestamp'] = trade['timestamp'].isoformat()
+                serializable_data[strategy_name] = serializable_perf
+            
+            data_to_save = {
+                'strategy_performance': serializable_data,
+                'last_updated': datetime.now().isoformat(),
+                'version': '1.0'
+            }
+            
+            # Создаем директорию если не существует
+            self.data_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(self.data_file, 'w', encoding='utf-8') as f:
+                json.dump(data_to_save, f, indent=2, ensure_ascii=False)
+                
+            logger.debug(f"Данные о производительности сохранены в {self.data_file}")
+        except Exception as e:
+            logger.error(f"Ошибка при сохранении данных: {e}")
+        
+    def _init_strategy_metrics(self):
+        """Инициализация метрик для всех стратегий (только если они еще не существуют)"""
+        strategies = ['sma_crossover', 'breakout', 'mean_reversion', 'rsi_strategy', 'half_year_strategy']
+        
+        for strategy in strategies:
+            # Только создаем новые метрики, если они не загружены
+            if strategy not in self.strategy_performance:
+                self.strategy_performance[strategy] = {
+                    'total_trades': 0,
+                    'winning_trades': 0,
+                    'losing_trades': 0,
+                    'total_pnl': 0.0,
+                    'avg_trade_duration': 0.0,
+                    'max_drawdown': 0.0,
+                    'sharpe_ratio': 0.0,
+                    'last_10_trades': [],  # Для расчета краткосрочной эффективности
+                    'base_weight': 1.0,  # Базовый вес стратегии
+                    'volatility_preference': 1.0,  # Предпочтение волатильности (0.5-2.0)
+                    'trend_preference': 1.0,  # Предпочтение тренда (0.5-2.0)
+                }
+            
+        # Настройка предпочтений стратегий (всегда обновляем)
+        self.strategy_performance['sma_crossover']['trend_preference'] = 1.8
+        self.strategy_performance['sma_crossover']['volatility_preference'] = 0.7
+        
+        self.strategy_performance['breakout']['trend_preference'] = 1.5
+        self.strategy_performance['breakout']['volatility_preference'] = 1.3
+        
+        self.strategy_performance['mean_reversion']['trend_preference'] = 0.6
+        self.strategy_performance['mean_reversion']['volatility_preference'] = 1.8
+        
+        self.strategy_performance['rsi_strategy']['trend_preference'] = 0.8
+        self.strategy_performance['rsi_strategy']['volatility_preference'] = 1.4
+        
+        self.strategy_performance['half_year_strategy']['trend_preference'] = 1.9
+        self.strategy_performance['half_year_strategy']['volatility_preference'] = 0.5
+    
+    def calculate_strategy_score(self, strategy_name: str, market_conditions: Dict) -> float:
+        """Рассчитывает комплексный рейтинг стратегии
+        
+        Args:
+            strategy_name: Название стратегии
+            market_conditions: Текущие рыночные условия
+            
+        Returns:
+            float: Итоговый рейтинг стратегии (0-10)
+        """
+        if strategy_name not in self.strategy_performance:
+            return 0.0
+            
+        perf = self.strategy_performance[strategy_name]
+        
+        # 1. Базовая эффективность (40% веса)
+        efficiency_score = self._calculate_efficiency_score(perf)
+        
+        # 2. Соответствие рыночным условиям (30% веса)
+        market_fit_score = self._calculate_market_fit_score(perf, market_conditions)
+        
+        # 3. Краткосрочная форма (20% веса)
+        recent_form_score = self._calculate_recent_form_score(perf)
+        
+        # 4. Стабильность (10% веса)
+        stability_score = self._calculate_stability_score(perf)
+        
+        # Итоговый рейтинг
+        total_score = (
+            efficiency_score * 0.4 +
+            market_fit_score * 0.3 +
+            recent_form_score * 0.2 +
+            stability_score * 0.1
+        )
+        
+        logger.debug(f"{strategy_name} score breakdown: efficiency={efficiency_score:.2f}, "
+                    f"market_fit={market_fit_score:.2f}, recent={recent_form_score:.2f}, "
+                    f"stability={stability_score:.2f}, total={total_score:.2f}")
+        
+        return min(total_score, 10.0)
+    
+    def _calculate_efficiency_score(self, perf: Dict) -> float:
+        """Рассчитывает базовую эффективность стратегии"""
+        if perf['total_trades'] == 0:
+            return 5.0  # Нейтральный рейтинг для новых стратегий
+            
+        # Win rate (0-4 балла)
+        win_rate = perf['winning_trades'] / perf['total_trades']
+        win_score = min(win_rate * 8, 4.0)  # 50% = 4 балла, 100% = 4 балла
+        
+        # PnL score (0-3 балла)
+        avg_pnl_per_trade = perf['total_pnl'] / perf['total_trades'] if perf['total_trades'] > 0 else 0
+        pnl_score = min(max(avg_pnl_per_trade / 10, -1), 3.0)  # $10 прибыли = 3 балла
+        
+        # Sharpe ratio (0-3 балла)
+        sharpe_score = min(max(perf['sharpe_ratio'], 0), 3.0)
+        
+        return win_score + pnl_score + sharpe_score
+    
+    def _calculate_market_fit_score(self, perf: Dict, market_conditions: Dict) -> float:
+        """Рассчитывает соответствие стратегии текущим рыночным условиям"""
+        volatility = market_conditions.get('volatility', 1.0)
+        trend_strength = market_conditions.get('trend_strength', 0.5)
+        
+        # Оценка по волатильности
+        vol_optimal = perf['volatility_preference']
+        vol_score = 5.0 - abs(volatility - vol_optimal) * 2
+        vol_score = max(0, min(vol_score, 5.0))
+        
+        # Оценка по силе тренда
+        trend_optimal = perf['trend_preference']
+        trend_score = 5.0 - abs(trend_strength - trend_optimal) * 5
+        trend_score = max(0, min(trend_score, 5.0))
+        
+        return (vol_score + trend_score) / 2
+    
+    def _calculate_recent_form_score(self, perf: Dict) -> float:
+        """Рассчитывает краткосрочную форму стратегии (последние 10 сделок)"""
+        recent_trades = perf['last_10_trades']
+        
+        if len(recent_trades) < 3:
+            return 5.0  # Нейтральный рейтинг
+            
+        recent_wins = sum(1 for trade in recent_trades if trade['success'])
+        recent_win_rate = recent_wins / len(recent_trades)
+        
+        recent_pnl = sum(trade['pnl'] for trade in recent_trades)
+        avg_recent_pnl = recent_pnl / len(recent_trades)
+        
+        # Комбинированная оценка краткосрочной формы
+        form_score = recent_win_rate * 6 + min(max(avg_recent_pnl / 5, -2), 4)
+        return max(0, min(form_score, 10.0))
+    
+    def _calculate_stability_score(self, perf: Dict) -> float:
+        """Рассчитывает стабильность стратегии"""
+        if perf['total_trades'] < 10:
+            return 5.0
+            
+        # Чем меньше максимальная просадка, тем выше стабильность
+        drawdown_score = max(0, 10 - perf['max_drawdown'])
+        
+        # Стабильность последних сделок
+        recent_trades = perf['last_10_trades']
+        if len(recent_trades) >= 5:
+            pnl_variance = sum((trade['pnl'] - sum(t['pnl'] for t in recent_trades) / len(recent_trades)) ** 2 
+                             for trade in recent_trades) / len(recent_trades)
+            variance_score = max(0, 5 - pnl_variance / 10)
+        else:
+            variance_score = 5.0
+            
+        return (drawdown_score + variance_score) / 2
+    
+    def get_strategy_rankings(self, market_conditions: Dict) -> List[Tuple[str, float]]:
+        """Получает ранжированный список всех стратегий
+        
+        Args:
+            market_conditions: Текущие рыночные условия
+            
+        Returns:
+            List[Tuple[str, float]]: Список кортежей (название_стратегии, рейтинг)
+        """
+        rankings = []
+        current_time = datetime.now()
+        
+        for strategy_name in self.strategy_performance.keys():
+            # Проверяем кулдаун
+            if strategy_name in self.strategy_cooldown:
+                if current_time - self.strategy_cooldown[strategy_name] < self.cooldown_period:
+                    continue
+                    
+            score = self.calculate_strategy_score(strategy_name, market_conditions)
+            rankings.append((strategy_name, score))
+        
+        # Сортируем по убыванию рейтинга
+        rankings.sort(key=lambda x: x[1], reverse=True)
+        return rankings
+    
+    def resolve_signal_conflicts(self, signals: Dict[str, Tuple[str, float, float]], 
+                                market_conditions: Dict) -> Optional[Tuple[str, str, float, float]]:
+        """Разрешает конфликты между сигналами разных стратегий
+        
+        Args:
+            signals: Словарь {strategy_name: (signal, stop_loss, take_profit)}
+            market_conditions: Текущие рыночные условия
+            
+        Returns:
+            Optional[Tuple]: (winning_strategy, signal, stop_loss, take_profit) или None
+        """
+        if not signals:
+            return None
+            
+        # Фильтруем только торговые сигналы (не Hold)
+        trade_signals = {name: signal for name, signal in signals.items() 
+                        if signal[0] != "Hold"}
+        
+        if not trade_signals:
+            return None
+            
+        if len(trade_signals) == 1:
+            # Только один сигнал - возвращаем его
+            strategy_name, (signal, sl, tp) = next(iter(trade_signals.items()))
+            return (strategy_name, signal, sl, tp)
+        
+        # Анализируем конфликты
+        buy_signals = {name: sig for name, sig in trade_signals.items() if sig[0] == "Buy"}
+        sell_signals = {name: sig for name, sig in trade_signals.items() if sig[0] == "Sell"}
+        
+        logger.info(f"Signal conflict detected: {len(buy_signals)} BUY, {len(sell_signals)} SELL")
+        
+        # Если все сигналы в одном направлении - выбираем лучшую стратегию
+        if buy_signals and not sell_signals:
+            return self._select_best_signal(buy_signals, market_conditions)
+        elif sell_signals and not buy_signals:
+            return self._select_best_signal(sell_signals, market_conditions)
+        else:
+            # Конфликт между Buy и Sell - выбираем стратегию с наивысшим рейтингом
+            logger.warning("Buy/Sell conflict detected - choosing highest rated strategy")
+            all_rankings = self.get_strategy_rankings(market_conditions)
+            
+            for strategy_name, score in all_rankings:
+                if strategy_name in trade_signals:
+                    signal, sl, tp = trade_signals[strategy_name]
+                    logger.info(f"Conflict resolved: {strategy_name} wins with score {score:.2f} -> {signal}")
+                    return (strategy_name, signal, sl, tp)
+                    
+        return None
+    
+    def _select_best_signal(self, signals: Dict[str, Tuple[str, float, float]], 
+                           market_conditions: Dict) -> Optional[Tuple[str, str, float, float]]:
+        """Выбирает лучший сигнал из однонаправленных сигналов"""
+        rankings = self.get_strategy_rankings(market_conditions)
+        
+        for strategy_name, score in rankings:
+            if strategy_name in signals:
+                signal, sl, tp = signals[strategy_name]
+                logger.info(f"Best signal selected: {strategy_name} (score: {score:.2f}) -> {signal}")
+                return (strategy_name, signal, sl, tp)
+                
+        return None
+    
     def select_best_strategy(self, symbol: str, market_conditions: Dict) -> Optional[tuple]:
         """Выбор лучшей стратегии для текущих рыночных условий
         
@@ -199,62 +508,132 @@ class StrategySelector:
             market_conditions: Рыночные условия (волатильность, сила тренда, объемы)
             
         Returns:
-            Optional[tuple]: Кортеж (название стратегии, функция стратегии, вес) или None
+            Optional[tuple]: Кортеж (название стратегии, функция стратегии, рейтинг) или None
         """
+        rankings = self.get_strategy_rankings(market_conditions)
         
-        volatility = market_conditions.get('volatility', 0)
-        trend_strength = market_conditions.get('trend_strength', 0)
-        volume_ratio = market_conditions.get('volume_ratio', 1.0)
-        
-        strategies = []
-        
-        # Выбираем стратегии на основе рыночных условий
-        if trend_strength > 0.6:
-            strategies.append(('sma_crossover', sma_crossover, 1.0))
-            strategies.append(('breakout', breakout, 0.8))
-        elif volatility > 2.0:
-            strategies.append(('mean_reversion', mean_reversion, 1.0))
-            strategies.append(('rsi_strategy', rsi_strategy, 0.7))
-        else:
-            strategies.append(('sma_crossover', sma_crossover, 0.5))
-            strategies.append(('breakout', breakout, 0.5))
-            strategies.append(('mean_reversion', mean_reversion, 0.5))
-            strategies.append(('rsi_strategy', rsi_strategy, 0.5))
-        
-        if volume_ratio > 0.8:
-            strategies.append(('half_year_strategy', half_year_strategy, 0.3))
-        
-        # Фильтруем стратегии в кулдауне
-        available_strategies = []
-        current_time = datetime.now()
-        for name, func, weight in strategies:
-            if name in self.strategy_cooldown:
-                if current_time - self.strategy_cooldown[name] < self.cooldown_period:
-                    continue
-            available_strategies.append((name, func, weight))
-        
-        if not available_strategies:
+        if not rankings:
+            logger.warning(f"{symbol}: no strategies available (all in cooldown)")
             return None
             
-        best_strategy = max(available_strategies, key=lambda x: x[2])
-        logger.debug(f"Selected strategy for {symbol}: {best_strategy[0]} (weight={best_strategy[2]:.2f})")
-        return best_strategy  # Возвращаем кортеж (name, func, weight)
+        # Выбираем стратегию с наивысшим рейтингом
+        best_strategy_name, best_score = rankings[0]
+        
+        # Маппинг названий на функции
+        strategy_functions = {
+            'sma_crossover': sma_crossover,
+            'breakout': breakout,
+            'mean_reversion': mean_reversion,
+            'rsi_strategy': rsi_strategy,
+            'half_year_strategy': half_year_strategy,
+        }
+        
+        if best_strategy_name not in strategy_functions:
+            logger.error(f"Unknown strategy: {best_strategy_name}")
+            return None
+            
+        strategy_func = strategy_functions[best_strategy_name]
+        
+        logger.info(f"{symbol}: selected strategy {best_strategy_name} with score {best_score:.2f}")
+        return (best_strategy_name, strategy_func, best_score)
     
-    def record_result(self, strategy_name: str, success: bool):
-        """Запись результата работы стратегии
+    def record_trade_result(self, strategy_name: str, success: bool, pnl: float, 
+                           trade_duration_minutes: int = 0):
+        """Запись результата сделки для обновления рейтинга стратегии
         
         Args:
             strategy_name: Название стратегии
-            success: Результат работы стратегии (True - успех, False - неудача)
+            success: Успешность сделки
+            pnl: Прибыль/убыток по сделке
+            trade_duration_minutes: Длительность сделки в минутах
         """
         if strategy_name not in self.strategy_performance:
-            self.strategy_performance[strategy_name] = {'success': 0, 'fail': 0}
+            return
+            
+        perf = self.strategy_performance[strategy_name]
         
+        # Обновляем основные метрики
+        perf['total_trades'] += 1
         if success:
-            self.strategy_performance[strategy_name]['success'] += 1
+            perf['winning_trades'] += 1
         else:
-            self.strategy_performance[strategy_name]['fail'] += 1
+            perf['losing_trades'] += 1
+            # Устанавливаем кулдаун для неуспешных стратегий
             self.strategy_cooldown[strategy_name] = datetime.now()
+            
+        perf['total_pnl'] += pnl
+        
+        # Обновляем средние значения
+        if perf['total_trades'] > 0:
+            avg_duration = perf['avg_trade_duration']
+            perf['avg_trade_duration'] = ((avg_duration * (perf['total_trades'] - 1) + 
+                                         trade_duration_minutes) / perf['total_trades'])
+        
+        # Добавляем в историю последних сделок
+        trade_record = {
+            'success': success,
+            'pnl': pnl,
+            'duration': trade_duration_minutes,
+            'timestamp': datetime.now()
+        }
+        
+        perf['last_10_trades'].append(trade_record)
+        if len(perf['last_10_trades']) > 10:
+            perf['last_10_trades'].pop(0)
+            
+        # Обновляем максимальную просадку
+        if pnl < 0:
+            drawdown = abs(pnl) / max(abs(perf['total_pnl']), 100) * 100
+            perf['max_drawdown'] = max(perf['max_drawdown'], drawdown)
+            
+        # Пересчитываем Sharpe ratio
+        self._update_sharpe_ratio(strategy_name)
+        
+        logger.info(f"Updated {strategy_name}: {perf['winning_trades']}/{perf['total_trades']} "
+                   f"wins, total PnL: ${perf['total_pnl']:.2f}")
+    
+    def _update_sharpe_ratio(self, strategy_name: str):
+        """Обновляет Sharpe ratio для стратегии"""
+        perf = self.strategy_performance[strategy_name]
+        recent_trades = perf['last_10_trades']
+        
+        if len(recent_trades) < 5:
+            return
+            
+        returns = [trade['pnl'] for trade in recent_trades]
+        avg_return = sum(returns) / len(returns)
+        
+        if len(returns) > 1:
+            variance = sum((r - avg_return) ** 2 for r in returns) / (len(returns) - 1)
+            std_dev = variance ** 0.5
+            
+            if std_dev > 0:
+                # Предполагаем безрисковую ставку 0
+                perf['sharpe_ratio'] = avg_return / std_dev
+            else:
+                perf['sharpe_ratio'] = 0
+    
+    def get_performance_summary(self) -> str:
+        """Возвращает сводку по эффективности всех стратегий"""
+        summary = ["\n=== STRATEGY PERFORMANCE SUMMARY ==="]
+        
+        # Сортируем стратегии по винрейту
+        strategies = [(name, perf) for name, perf in self.strategy_performance.items()]
+        strategies.sort(key=lambda x: x[1]['winning_trades'] / max(x[1]['total_trades'], 1), reverse=True)
+        
+        for name, perf in strategies:
+            if perf['total_trades'] > 0:
+                win_rate = (perf['winning_trades'] / perf['total_trades']) * 100
+                avg_pnl = perf['total_pnl'] / perf['total_trades']
+                summary.append(
+                    f"{name:15} | {perf['winning_trades']:3}/{perf['total_trades']:3} "
+                    f"({win_rate:5.1f}%) | PnL: ${perf['total_pnl']:8.2f} "
+                    f"(${avg_pnl:6.2f}/trade) | Sharpe: {perf['sharpe_ratio']:5.2f}"
+                )
+            else:
+                summary.append(f"{name:15} | No trades yet")
+                
+        return "\n".join(summary)
 
 
 class BybitTradingBot:
@@ -599,7 +978,9 @@ class BybitTradingBot:
             if ret_code == 0:
                 logger.info(f"{symbol}: Order placed successfully")
                 # Добавляем позицию в менеджер только при успешном размещении ордера
-                self.position_manager.add_position(symbol, side, amount, price, stop_loss, take_profit)
+                # Проверяем, что передан strategy_name в качестве последнего параметра
+                strategy_name = getattr(self, '_current_strategy', None)
+                self.position_manager.add_position(symbol, side, amount, price, stop_loss, take_profit, strategy_name)
             else:
                 logger.error(f"{symbol}: Failed to place order - code: {ret_code}, message: {ret_msg}")
                 # Логируем дополнительную информацию об ошибке
@@ -615,7 +996,7 @@ class BybitTradingBot:
             return {"retCode": -1, "retMsg": f"Exception: {str(e)}"}
 
     def smart_trade(self, symbol: str) -> Optional[dict]:
-        """Интеллектуальная торговля с выбором стратегии и управлением рисками
+        """Интеллектуальная торговля с множественными стратегиями и разрешением конфликтов
         
         Args:
             symbol: Торговая пара
@@ -630,7 +1011,7 @@ class BybitTradingBot:
         
         # Обновляем баланс
         balance = self.update_balance()
-        min_balance = self.config.min_trade_amount * 5  # Минимальный баланс должен быть в 5 раз больше минимальной суммы сделки
+        min_balance = self.config.min_trade_amount * 5
         if balance < min_balance:
             logger.warning(f"Insufficient balance: ${balance:.2f} (minimum required: ${min_balance:.2f})")
             return None
@@ -641,41 +1022,26 @@ class BybitTradingBot:
                    f"trend={market_conditions['trend_strength']:.2f}, "
                    f"volume_ratio={market_conditions['volume_ratio']:.2f}")
         
-        # Выбираем стратегию
-        strategy_info = self.strategy_selector.select_best_strategy(symbol, market_conditions)
-        if not strategy_info:
-            logger.info(f"{symbol}: no suitable strategy available")
+        # Получаем сигналы от всех стратегий
+        all_signals = self._get_all_strategy_signals(symbol, market_conditions)
+        
+        if not all_signals:
+            logger.info(f"{symbol}: no strategy signals available")
             return None
         
-        strategy_name, strategy_func, _ = strategy_info
+        # Логируем все сигналы
+        signal_summary = ", ".join([f"{name}:{sig[0]}" for name, sig in all_signals.items()])
+        logger.info(f"{symbol} signals: {signal_summary}")
         
-        # Получаем данные для стратегии
-        interval = 240 if strategy_name == 'half_year_strategy' else 5
-        limit = 200 if strategy_name == 'half_year_strategy' else 50
+        # Разрешаем конфликты и выбираем лучший сигнал
+        final_decision = self.strategy_selector.resolve_signal_conflicts(all_signals, market_conditions)
         
-        result = self.session.get_kline(
-            category="linear", symbol=symbol, interval=interval, limit=limit
-        )
-        candles = result.get("result", {}).get("list", [])
-        if len(candles) < limit:
-            logger.warning(f"{symbol}: not enough data for {strategy_name}")
+        if not final_decision:
+            logger.info(f"{symbol}: no clear trading signal after conflict resolution")
             return None
         
-        candles = [list(map(float, c[:6])) for c in reversed(candles)]
-        
-        # Получаем сигнал от стратегии
-        try:
-            signal, stop, take = strategy_func(candles)
-        except Exception as e:
-            logger.error(f"{symbol}: strategy {strategy_name} failed: {e}")
-            self.strategy_selector.record_result(strategy_name, False)
-            return None
-        
-        if signal == "Hold":
-            logger.info(f"{symbol}: {strategy_name} -> no signal")
-            return None
-        
-        logger.info(f"{symbol}: {strategy_name} -> {signal}, SL=${stop:.2f}, TP=${take:.2f}")
+        winning_strategy, signal, stop_loss, take_profit = final_decision
+        logger.info(f"{symbol}: final decision - {winning_strategy} -> {signal}, SL=${stop_loss:.2f}, TP=${take_profit:.2f}")
         
         # Рассчитываем размер позиции
         position_size = self.calculate_position_size(
@@ -693,24 +1059,101 @@ class BybitTradingBot:
         
         # Открываем позицию
         try:
-            price = candles[-1][4]
+            # Запоминаем время начала сделки и стратегию
+            trade_start_time = datetime.now()
+            self._current_strategy = winning_strategy  # Сохраняем для use в place_order
+            
+            price = self._last_price(symbol)
             order_result = self.place_order(
-                symbol, signal, position_size, leverage, stop, take, price
+                symbol, signal, position_size, leverage, stop_loss, take_profit, price
             )
             
             if order_result.get("retCode") == 0:
-                logger.info(f"{symbol}: order placed successfully via {strategy_name}")
-                self.strategy_selector.record_result(strategy_name, True)
+                logger.info(f"{symbol}: order placed successfully via {winning_strategy}")
                 return order_result
             else:
                 logger.error(f"{symbol}: order failed: {order_result}")
-                self.strategy_selector.record_result(strategy_name, False)
+                self.strategy_selector.record_trade_result(winning_strategy, False, 0)
                 return None
                 
         except Exception as e:
             logger.error(f"{symbol}: failed to place order: {e}")
-            self.strategy_selector.record_result(strategy_name, False)
             return None
+        finally:
+            # Очищаем временную переменную
+            if hasattr(self, '_current_strategy'):
+                delattr(self, '_current_strategy')
+    
+    def _get_all_strategy_signals(self, symbol: str, market_conditions: Dict) -> Dict[str, Tuple[str, float, float]]:
+        """Получает сигналы от всех доступных стратегий
+        
+        Args:
+            symbol: Торговая пара
+            market_conditions: Рыночные условия
+            
+        Returns:
+            Dict[str, Tuple]: Словарь {strategy_name: (signal, stop_loss, take_profit)}
+        """
+        strategies_to_test = {
+            'sma_crossover': {'interval': 5, 'limit': 50},
+            'breakout': {'interval': 5, 'limit': 50},
+            'mean_reversion': {'interval': 5, 'limit': 50},
+            'rsi_strategy': {'interval': 5, 'limit': 50},
+            'half_year_strategy': {'interval': 240, 'limit': 200},
+        }
+        
+        strategy_functions = {
+            'sma_crossover': sma_crossover,
+            'breakout': breakout,
+            'mean_reversion': mean_reversion,
+            'rsi_strategy': rsi_strategy,
+            'half_year_strategy': half_year_strategy,
+        }
+        
+        all_signals = {}
+        
+        for strategy_name, params in strategies_to_test.items():
+            try:
+                # Проверяем кулдаун
+                if strategy_name in self.strategy_selector.strategy_cooldown:
+                    time_since_cooldown = datetime.now() - self.strategy_selector.strategy_cooldown[strategy_name]
+                    if time_since_cooldown < self.strategy_selector.cooldown_period:
+                        logger.debug(f"{symbol}: {strategy_name} in cooldown")
+                        continue
+                
+                # Получаем данные для стратегии
+                result = self.session.get_kline(
+                    category="linear", 
+                    symbol=symbol, 
+                    interval=params['interval'], 
+                    limit=params['limit']
+                )
+                
+                candles = result.get("result", {}).get("list", [])
+                if len(candles) < params['limit']:
+                    logger.warning(f"{symbol}: not enough data for {strategy_name} ({len(candles)}/{params['limit']})")
+                    continue
+                
+                # Преобразуем данные
+                candles = [list(map(float, c[:6])) for c in reversed(candles)]
+                
+                # Получаем сигнал от стратегии
+                strategy_func = strategy_functions[strategy_name]
+                signal, stop, take = strategy_func(candles)
+                
+                # Применяем ограничения на SL/TP
+                price = candles[-1][4]
+                stop, take = apply_sl_tp_bounds(price, signal, stop, take)
+                
+                all_signals[strategy_name] = (signal, stop, take)
+                
+                logger.debug(f"{symbol}: {strategy_name} -> {signal} (SL: ${stop:.2f}, TP: ${take:.2f})")
+                
+            except Exception as e:
+                logger.error(f"{symbol}: error getting signal from {strategy_name}: {e}")
+                continue
+        
+        return all_signals
 
     def log_market_trend(self, symbol: str) -> None:
         """Log market trend information"""
@@ -737,17 +1180,11 @@ class BybitTradingBot:
             self.log_market_trend(symbol)
 
     def get_strategy_stats(self) -> str:
-        """Получение статистики по стратегиям"""
-        stats = []
-        for name, perf in self.strategy_selector.strategy_performance.items():
-            total = perf['success'] + perf['fail']
-            if total > 0:
-                win_rate = (perf['success'] / total) * 100
-                stats.append(f"{name}: {perf['success']}/{total} ({win_rate:.1f}%)")
-        return " | ".join(stats) if stats else "No trades yet"
+        """Получение подробной статистики по всем стратегиям"""
+        return self.strategy_selector.get_performance_summary()
     
     def close_position(self, symbol: str, side: str, amount: float) -> dict:
-        """Закрытие позиции
+        """Закрытие позиции с отслеживанием результатов стратегии
         
         Args:
             symbol: Торговая пара
@@ -757,11 +1194,25 @@ class BybitTradingBot:
         Returns:
             dict: Результат закрытия позиции
         """
+        # Получаем информацию о позиции до закрытия
+        position_info = self.position_manager.get_position(symbol)
+        strategy_used = None
+        trade_start_time = None
+        entry_price = None
+        
+        if position_info:
+            strategy_used = position_info.get('strategy_used')
+            trade_start_time = position_info.get('trade_start_time')
+            entry_price = position_info.get('entry_price')
+        
         try:
             close_side = "Sell" if side == "Buy" else "Buy"
             qty = self._format_qty(symbol, amount)
             
             logger.info(f"Closing position: {symbol} {close_side} qty={qty}")
+            
+            # Получаем текущую цену для расчета PnL
+            current_price = self._last_price(symbol)
             
             result = self.session.place_order(
                 category="linear",
@@ -778,20 +1229,49 @@ class BybitTradingBot:
             ret_msg = result.get("retMsg", "Unknown error")
             
             if ret_code == 0:
-                self.position_manager.remove_position(symbol)
                 logger.info(f"Position closed successfully: {symbol} {close_side} qty={qty}")
+                
+                # Рассчитываем PnL и обновляем статистику стратегии
+                if strategy_used and entry_price:
+                    # Рассчитываем PnL
+                    if side == "Buy":
+                        actual_pnl_usd = (current_price - entry_price) * amount / entry_price
+                    else:  # Sell
+                        actual_pnl_usd = (entry_price - current_price) * amount / entry_price
+                    
+                    # Определяем успешность сделки
+                    success = actual_pnl_usd > 0
+                    
+                    # Рассчитываем длительность сделки
+                    trade_duration = 0
+                    if trade_start_time:
+                        trade_duration = int((datetime.now() - trade_start_time).total_seconds() / 60)
+                    
+                    # Обновляем статистику стратегии
+                    self.strategy_selector.record_trade_result(
+                        strategy_used, success, actual_pnl_usd, trade_duration
+                    )
+                    
+                    # Автоматически сохраняем данные
+                    self.strategy_selector._save_performance_data()
+                    
+                    pnl_pct = (actual_pnl_usd / amount) * 100
+                    logger.info(f"Trade completed: {strategy_used} -> {'SUCCESS' if success else 'LOSS'} "
+                               f"PnL: ${actual_pnl_usd:.2f} ({pnl_pct:+.2f}%) Duration: {trade_duration}min")
+                
+                # Удаляем позицию из менеджера
+                self.position_manager.remove_position(symbol)
             else:
                 logger.error(f"Failed to close position {symbol} - code: {ret_code}, message: {ret_msg}")
                 # Логируем дополнительную информацию об ошибке
                 if "error" in result:
                     logger.error(f"{symbol}: Error details: {result['error']}")
-                # Удаляем позицию из менеджера даже при ошибке API (позиция могла быть закрыта)
+                # Удаляем позицию из менеджера даже при ошибке API
                 self.position_manager.remove_position(symbol)
             
             return result
         except Exception as e:
             logger.error(f"Exception closing position {symbol}: {e}")
-            # Логируем traceback для отладки
             import traceback
             logger.error(f"{symbol}: Traceback: {traceback.format_exc()}")
             return {"retCode": -1, "retMsg": f"Exception: {str(e)}"}
