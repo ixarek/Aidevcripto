@@ -307,6 +307,13 @@ class BybitTradingBot:
         try:
             if datetime.now() - self.last_balance_update > timedelta(minutes=self.config.balance_update_interval_minutes):
                 result = self.session.get_wallet_balance(accountType="UNIFIED")
+                
+                # Проверяем результат API
+                ret_code = result.get("retCode", -1)
+                if ret_code != 0:
+                    logger.error(f"Failed to get wallet balance - code: {ret_code}, message: {result.get('retMsg', 'Unknown error')}")
+                    return self.account_balance  # Возвращаем кэшированное значение
+                
                 balance_data = result.get("result", {}).get("list", [{}])[0]
                 coins = balance_data.get("coin", [])
                 for coin in coins:
@@ -339,17 +346,45 @@ class BybitTradingBot:
 
     def _last_price(self, symbol: str) -> float:
         """Return last traded price for symbol"""
-        result = self.session.get_tickers(category="linear", symbol=symbol)
-        price = result.get("result", {}).get("list", [{}])[0].get("lastPrice")
-        if price is None:
-            raise ValueError(f"No price data for {symbol}")
-        return float(price)
+        try:
+            result = self.session.get_tickers(category="linear", symbol=symbol)
+            
+            # Проверяем результат API
+            ret_code = result.get("retCode", -1)
+            if ret_code != 0:
+                raise ValueError(f"API error for {symbol}: code {ret_code}, message: {result.get('retMsg', 'Unknown error')}")
+            
+            price = result.get("result", {}).get("list", [{}])[0].get("lastPrice")
+            if price is None:
+                raise ValueError(f"No price data for {symbol}")
+            return float(price)
+        except Exception as e:
+            logger.error(f"Failed to get price for {symbol}: {e}")
+            raise
 
-    @lru_cache(maxsize=None)
+    @lru_cache(maxsize=128)
     def _instrument_info(self, symbol: str) -> dict:
         """Return instrument info used for lot and price steps"""
-        result = self.session.get_instruments_info(category="linear", symbol=symbol)
-        return result.get("result", {}).get("list", [{}])[0]
+        try:
+            result = self.session.get_instruments_info(category="linear", symbol=symbol)
+            
+            # Проверяем результат API
+            ret_code = result.get("retCode", -1)
+            if ret_code != 0:
+                raise ValueError(f"API error getting instrument info for {symbol}: code {ret_code}")
+            
+            instrument_list = result.get("result", {}).get("list", [])
+            if not instrument_list:
+                raise ValueError(f"No instrument info found for {symbol}")
+            
+            return instrument_list[0]
+        except Exception as e:
+            logger.error(f"Failed to get instrument info for {symbol}: {e}")
+            # Возвращаем базовые значения в качестве fallback
+            return {
+                "lotSizeFilter": {"qtyStep": "0.001", "minOrderQty": "0.001"},
+                "priceFilter": {"tickSize": "0.01"}
+            }
 
     def _lot_step(self, symbol: str) -> tuple[float, float]:
         """Return quantity step and minimum order size for symbol"""
@@ -536,12 +571,6 @@ class BybitTradingBot:
         if not self._validate_sl_tp_levels(symbol, price, stop_loss, take_profit, side):
             raise ValueError(f"Invalid SL/TP levels for {symbol}")
         
-        # Валидация уровней SL/TP
-        if side == "Buy" and not (stop_loss < price < take_profit):
-            raise ValueError(f"Invalid Buy SL/TP: SL={stop_loss:.2f}, Price={price:.2f}, TP={take_profit:.2f}")
-        if side == "Sell" and not (take_profit < price < stop_loss):
-            raise ValueError(f"Invalid Sell SL/TP: TP={take_profit:.2f}, Price={price:.2f}, SL={stop_loss:.2f}")
-        
         qty = self._format_qty(symbol, amount * leverage / price)
         logger.info(
             f"{symbol}: placing {side} order: qty={qty:.4f}, price=${price:.2f}, "
@@ -569,7 +598,7 @@ class BybitTradingBot:
             
             if ret_code == 0:
                 logger.info(f"{symbol}: Order placed successfully")
-                # Добавляем позицию в менеджер
+                # Добавляем позицию в менеджер только при успешном размещении ордера
                 self.position_manager.add_position(symbol, side, amount, price, stop_loss, take_profit)
             else:
                 logger.error(f"{symbol}: Failed to place order - code: {ret_code}, message: {ret_msg}")
@@ -756,6 +785,8 @@ class BybitTradingBot:
                 # Логируем дополнительную информацию об ошибке
                 if "error" in result:
                     logger.error(f"{symbol}: Error details: {result['error']}")
+                # Удаляем позицию из менеджера даже при ошибке API (позиция могла быть закрыта)
+                self.position_manager.remove_position(symbol)
             
             return result
         except Exception as e:
@@ -804,7 +835,7 @@ def main() -> None:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     setup_logging()
-    bot = BybitTradingBot(session)
+    bot = BybitTradingBot(session, cfg)
     
     logger.info("=" * 60)
     logger.info("Starting Enhanced Bybit Trading Bot")

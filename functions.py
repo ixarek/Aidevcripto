@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 import statistics
 
 __all__ = [
@@ -289,7 +289,7 @@ def reload_config(config_path: str | Path, current_config: Dict) -> Dict:
 
 
 def cache_candles(
-    symbol: str, candles: Iterable, cache_dir: str | Path = "cache"
+    symbol: str, candles: List, cache_dir: str | Path = "cache"
 ) -> Path:
     """Save candles for ``symbol`` to ``cache_dir`` as JSON and return the path."""
 
